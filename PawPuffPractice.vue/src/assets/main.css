@@ -1,0 +1,98 @@
+@import './design-tokens.css';
+/* @import './base.css';  */
+/* base.css 範例樣式 */
+
+
+/* 問題：
+Figma 版面宽度：1512px
+Vue 限制宽度：1280px
+另外增加：2rem 内距 */
+/* 所以画面会被缩小、留白和位移 */
+/* #app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+} */
+
+
+/* 这是 Vue 示例的绿色链接效果，和你的登入页无关，可以删除。 */
+/* a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+} */
+
+
+
+
+
+/* 画面切成两栏 */
+/* 这会把 App.vue Header 和 LoginView 排成左右两栏 */
+/* @media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+} */
+
+
+/* 改成以下 */
+/* 所有元素使用与 Figma 较一致的尺寸计算方式 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 清除浏览器默认空白 */
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* 让网站至少占满一个浏览器画面 */
+body,
+#app {
+  min-height: 100vh;
+}
+
+/* 全网站默认字体 */
+body {
+  min-width: 320px;
+  font-family:
+    Arial,
+    "Noto Sans TC",
+    sans-serif;
+}
+
+/* 表单使用与页面相同的字体 */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* 避免图片底部出现文字基线空隙 */
+img {
+  display: block;
+}

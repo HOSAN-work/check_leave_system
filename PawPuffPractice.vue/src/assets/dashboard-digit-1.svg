@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="80.3459" height="156" viewBox="0 0 80.3459 156" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="Number Component">
+<path id="Rectangle 2" d="M0.772551 0H80.3459L65.6673 13H14.6786L0.772551 0Z" fill="#E6E6E6"/>
+<path id="Rectangle 5" d="M12.3609 71.5H67.985L78.8008 78L67.985 84.5H12.3609L2.31768 78L12.3609 71.5Z" fill="#E6E6E6"/>
+<path id="Rectangle 3" d="M2.83664e-06 76.375L0 3.25L12.3609 15.4375L12.3609 68.25L2.83664e-06 76.375Z" fill="#E6E6E6"/>
+<g id="Rectangle 4">
+<use xlink:href="#stroke0_0_695" fill="#E6E6E6"/>
+<use xlink:href="#stroke0_0_695" fill="#171717"/>
+</g>
+<path id="Rectangle 2_2" d="M77.2556 156L3.09023 156L14.6786 143L65.6673 143L77.2556 156Z" fill="#E6E6E6"/>
+<g id="Rectangle 3_2">
+<use xlink:href="#stroke1_0_695" fill="#E6E6E6"/>
+<use xlink:href="#stroke1_0_695" fill="#171717"/>
+</g>
+<path id="Rectangle 4_2" d="M2.83664e-06 154.375L1.2157e-05 79.625L12.3609 87.75L12.3609 140.563L2.83664e-06 154.375Z" fill="#E6E6E6"/>
+</g>
+<defs>
+<path id="stroke0_0_695" d="M80.3459 4.06249L80.3459 76.375L67.985 68.25L67.985 15.4375L80.3459 4.06249Z"/>
+<path id="stroke1_0_695" d="M80.3459 80.4375L80.3459 154.375L67.985 141.375L67.985 87.75L80.3459 80.4375Z"/>
+</defs>
+</svg>

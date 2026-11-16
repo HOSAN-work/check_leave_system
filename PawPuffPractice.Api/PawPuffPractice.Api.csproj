@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- 只要port更新的話,UserSecrets就要更新 -->
+    <!-- dotnet user-secrets set \
+        "ConnectionStrings:DefaultConnection" \
+        'Server=localhost;Port=55006;Database=PawPuffPracticeMySQL;User=root;Password= Docker真正的8字元密碼;' -->
+    <!-- dotnet user-secrets list
+    確認port有沒有更新 -->
+    <UserSecretsId>29cab865-89f2-4700-b19c-ab6c41cdbbb8</UserSecretsId>
+  </PropertyGroup>
+  <!-- <ItemGroup> 是 .csproj 專案檔裡的「項目分組」，用來放套件、檔案等項目設定。 -->
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="Bogus" Version="35.6.5" />
+    <PackageReference Include="Line.Messaging" Version="1.4.5" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.13" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.8.43" />
+
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.20" />
+    <!-- 以下需要配合EfCore版本9  -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
+    <PackageReference Include="NuGet.Packaging" Version="6.12.5" />
+    <PackageReference Include="NuGet.Protocol" Version="6.12.5" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+
+    <!-- Swashbuckle不需要配合 EFCore -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <!-- 先從部署情況想
+本機可以找到：Data/Calendars/2027.csv
+但發布程式時，如果只帶走程式、沒帶走 CSV，部署後查詢就會得到 404。 -->
+  <!-- 「發布後端時，把這些 CSV 帶進發布目錄；目的檔不存在或來源較新時才複製。」 -->
+  <!-- None 是 .NET 專案裡的一種「檔案分類」用途：其他檔案，不當成程式碼編譯；仍可設定複製等行為 -->
+  <!-- Update 表示「修改專案已包含的檔案項目設定」 -->
+  <!-- CopyToOutputDirectory 建置時複製到輸出目錄 -->
+  <!-- CopyToPublishDirectory 發布時複製到發布目錄-->
+  <!-- PreserveNewest 目的地沒有檔案，或來源較新時才複製 -->
+  <ItemGroup>
+    <None Update="Data/Calendars/*.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+  <!-- dotnet publish -c Release -o /private/tmp/pawpuff-calendar-publish-check -->
+  <!-- dotnet publish 只是在你的電腦產生「準備部署的檔案」
+  存到你電腦的 /private/tmp/pawpuff-calendar-publish-check -->
+
+  <!-- `ProjectReference` 告訴 .NET，編譯 API 時要一併處理這個類別庫，讓 API 程式碼可以使用其中的 public 類別 -->
+  <ItemGroup>
+    <ProjectReference Include="../LineBot Class Library/LineBot Class Library.csproj" />
+  </ItemGroup>
+</Project>
+
+<!-- NU1903 套件 Microsoft.OpenApi 2.0.0 具有已知的高嚴重性弱點 -->
+<!-- 該弱點會讓惡意設計的 OpenAPI 文件造成程序終止；官方公告指出 2.x 應至少升級到 2.7.5。 -->
+<!-- 建議怎麼處理？ -->
+<!-- 目前 .NET 10 穩定版的 Microsoft.AspNetCore.OpenApi 已有 10.0.12，而且它要求安全範圍的 Microsoft.OpenApi >= 2.12.0。 -->
+<!-- 更新套件 -->
+<!--  Microsoft.AspNetCore.OpenApi version 10.0.12 -->

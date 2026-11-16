@@ -1,0 +1,701 @@
+.admin-users-page {
+  --account-space-1: var(--dashboard-space-1);
+  --account-space-2: var(--dashboard-space-2);
+  --account-space-3: var(--dashboard-space-3);
+  --account-space-4: var(--dashboard-space-4);
+  --account-space-5: var(--dashboard-space-5);
+  --account-space-6: var(--dashboard-space-6);
+  --account-ink: var(--color-ink);
+  --account-text: var(--color-text);
+  --account-muted: var(--color-text-muted);
+  --account-border: var(--color-border-strong);
+  --account-surface: var(--color-surface);
+  --account-focus: var(--color-focus);
+
+  font-family: Arial, 'Noto Sans TC', sans-serif;
+}
+
+.admin-users-page .dashboard-content {
+  padding-top: var(--account-space-6);
+}
+
+/* 側欄改用正常的 flex 排版，登出按鈕會留在導覽下方，不再覆蓋帳號管理。 */
+.admin-users-page .dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-users-page .dashboard-logout-wrap {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  flex: 0 0 auto;
+  margin: auto auto var(--account-space-6);
+  transform: none;
+}
+
+.account-page-heading {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) auto minmax(90px, 1fr);
+  align-items: center;
+  min-height: 48px;
+  margin-bottom: var(--account-space-5);
+}
+
+.account-page-heading h1 {
+  grid-column: 2;
+  margin: 0;
+  color: rgb(0 0 0 / 75%);
+  font-family: 'Averia Libre', 'Noto Sans TC', sans-serif;
+  font-size: clamp(24px, 2.05vw, 31px);
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow: 0 4px 4px rgb(0 0 0 / 25%);
+}
+
+.account-mode-toggle {
+  grid-column: 3;
+  justify-self: end;
+  margin-right: clamp(var(--account-space-4), 8vw, 96px);
+  min-width: 90px;
+}
+
+.account-feedback {
+  margin: var(--account-space-2) 0;
+  padding: 0;
+  background: transparent;
+}
+
+.account-state {
+  margin: var(--account-space-6) 0;
+  color: var(--account-text);
+  text-align: center;
+}
+
+.account-panel {
+  min-width: 0;
+  margin-top: var(--account-space-5);
+}
+
+.account-panel h2,
+.account-section-heading h2 {
+  margin: 0;
+  color: var(--account-ink);
+  font-size: clamp(18px, 1.45vw, 22px);
+  font-weight: 700;
+}
+
+.account-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--account-space-4);
+  margin-bottom: var(--account-space-3);
+}
+
+.account-count,
+.account-table-meta {
+  margin: 0;
+  color: var(--account-ink);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.account-filter-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(190px, 0.9fr) auto;
+  align-items: end;
+  gap: var(--account-space-4);
+}
+
+.account-filter-row--admins {
+  grid-template-columns: minmax(220px, 1.1fr) minmax(190px, 0.9fr) auto auto;
+  margin-bottom: var(--account-space-5);
+}
+
+.account-control {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--account-space-2);
+}
+
+.account-control label,
+.account-modal-window label {
+  color: var(--account-ink);
+  font-weight: 700;
+}
+
+.admin-users-page .account-input,
+.account-select,
+.account-modal-window input,
+.account-modal-window select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: var(--account-space-2) var(--account-space-3);
+  border: 1px solid #929292;
+  border-radius: 22px;
+  color: var(--account-text);
+  background: #fff;
+  font-size: 14px;
+}
+
+.account-select,
+.account-modal-window select {
+  border-radius: 4px;
+}
+
+.account-clear-button,
+.account-create-button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.account-clear-button {
+  border-color: var(--account-border);
+  color: var(--account-text);
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--account-border);
+}
+
+.account-table-meta {
+  margin: var(--account-space-4) 0 var(--account-space-2);
+}
+
+.account-sort-controls {
+  display: grid;
+  width: min(680px, 100%);
+  grid-template-columns: auto minmax(130px, 1fr) auto minmax(130px, 1fr);
+  align-items: center;
+  gap: var(--account-space-3);
+  margin: var(--account-space-4) 0;
+}
+
+.account-sort-controls label {
+  color: var(--account-ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.account-sort-controls select {
+  min-width: 0;
+  min-height: 38px;
+  padding: var(--account-space-2);
+  border: 1px solid #767676;
+  color: var(--account-text);
+  background: #fff;
+}
+
+.account-table-scroll,
+.account-detail-scroll {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--account-border);
+  border-radius: 30px;
+  background: var(--account-surface);
+  scrollbar-color: #9299a5 #f4f5f8;
+}
+
+.account-table-scroll:focus-visible,
+.account-detail-scroll:focus-visible {
+  outline: 3px solid #3655a5;
+  outline-offset: 3px;
+}
+
+.account-table {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.account-table th,
+.account-table td,
+.account-detail-table th,
+.account-detail-table td {
+  padding: 8px 12px;
+  border: 0;
+  color: var(--account-text);
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.account-table th,
+.account-detail-table th {
+  padding-top: 14px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #dedede;
+  color: var(--account-muted);
+  font-weight: 500;
+}
+
+.account-table td {
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.account-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.account-table td:last-child {
+  display: flex;
+  align-items: center;
+  gap: var(--account-space-2);
+}
+
+.account-table td button {
+  min-width: 56px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: #b23a48;
+  box-shadow: 0 4px 9px rgb(0 0 0 / 24%);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.account-table td button:hover {
+  filter: brightness(0.94);
+}
+
+.account-table td button:first-child {
+  background: #176b37;
+}
+
+.account-table--admins td:nth-last-child(2) button {
+  border: 2px solid #333;
+  border-radius: 5px;
+  color: #333;
+  background: #fae7e4;
+  box-shadow: 3px 3px 0 #333;
+}
+
+.account-table--admins td:nth-last-child(2) button:hover {
+  filter: none;
+}
+
+.account-table td button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.account-pagination {
+  display: flex;
+  width: min(590px, 100%);
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--account-space-2);
+  margin: var(--account-space-5) auto 0;
+  padding: 0 var(--account-space-4);
+  border-radius: 36px;
+  background: #f7f9ff;
+  box-shadow: 0 4px 4px rgb(0 0 0 / 20%);
+}
+
+.account-pagination ol {
+  display: flex;
+  align-items: center;
+  gap: var(--account-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-pagination button {
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--account-text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.account-pagination button.is-current {
+  color: #fff;
+  border: 2px solid #333;
+  background: #4c5f9a;
+  font-weight: 700;
+}
+
+.account-pagination button.is-current img {
+  display: none;
+}
+
+.account-pagination button span {
+  position: relative;
+  z-index: 1;
+}
+
+.account-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.account-pagination .account-page-arrow {
+  border-radius: 7px;
+}
+
+.account-pagination .account-page-arrow img {
+  width: 10px;
+  height: 20px;
+  filter: brightness(0.5);
+}
+
+.account-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: var(--account-space-5);
+  overflow: auto;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.account-modal-backdrop:not([open]) {
+  display: none;
+}
+
+.account-modal-backdrop::backdrop {
+  background: rgb(33 23 68 / 24%);
+}
+
+.account-modal-window {
+  width: min(520px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: var(--account-space-5);
+  border: 1px solid var(--account-border);
+  border-radius: 10px;
+  color: #171717;
+  background: #fff;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 25%);
+}
+
+.account-modal-window:focus-visible,
+.account-modal-window :focus-visible {
+  outline: 3px solid #3655a5;
+  outline-offset: 3px;
+}
+
+.account-modal-window h2 {
+  margin: 0 0 var(--account-space-5);
+  color: #333;
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  text-shadow: 0 4px 4px rgb(0 0 0 / 24%);
+}
+
+.account-modal-window form {
+  display: grid;
+  gap: var(--account-space-4);
+}
+
+.account-modal-window form > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.5fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--account-space-3);
+}
+
+.account-modal-window form > .account-modal-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  grid-template-columns: none;
+  justify-content: center;
+  gap: var(--account-space-5);
+}
+
+.account-modal-window form > div label {
+  text-align: right;
+}
+
+.account-modal-window form > p,
+.account-modal-window > p {
+  margin: 0;
+}
+
+.account-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--account-space-5);
+  margin-top: var(--account-space-3);
+}
+
+.account-button-primary,
+.account-button-secondary {
+  min-width: 108px;
+  min-height: 48px;
+  border-radius: 7px;
+  font-size: 16px;
+}
+
+.account-button-primary {
+  border-color: #f2da32;
+  color: #28220b;
+  background: #ffe73f;
+  box-shadow: 4px 4px 0 #d9c52a;
+}
+
+.account-button-secondary {
+  border-color: #313e77;
+  color: #313e77;
+  background: #fff;
+  box-shadow: none;
+}
+
+.account-modal-window--member-detail,
+.account-modal-window--admin-detail {
+  width: min(1307px, 100%);
+  text-align: center;
+}
+
+.account-detail-scroll {
+  margin-bottom: var(--account-space-4);
+  border-radius: 24px;
+}
+
+.account-detail-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: collapse;
+}
+
+.account-detail-table td {
+  padding-top: var(--account-space-4);
+  padding-bottom: var(--account-space-4);
+}
+
+.account-modal-window--suspend-member,
+.account-modal-window--admin-status {
+  width: min(520px, 100%);
+}
+
+.account-modal-window--confirm {
+  position: relative;
+  width: min(470px, 100%);
+  padding: var(--account-space-5) 0 var(--account-space-5);
+  border-color: #858585;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.account-modal-window--confirm h2 {
+  margin: 0 0 var(--account-space-6);
+  padding: var(--account-space-3) 56px var(--account-space-6);
+  border-bottom: 1px solid #d8d8dc;
+  color: #3045a0;
+  font-size: 20px;
+  line-height: 1.35;
+  text-shadow: none;
+}
+
+.account-dialog-close {
+  position: absolute;
+  top: var(--account-space-3);
+  right: var(--account-space-3);
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  color: #222;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.account-modal-window form.account-confirm-form {
+  display: block;
+}
+
+.account-confirm-actions {
+  display: grid;
+  justify-items: center;
+  gap: var(--account-space-4);
+  padding-inline: var(--account-space-5);
+  text-align: center;
+}
+
+.account-confirm-actions button {
+  width: min(270px, 100%);
+  min-height: 54px;
+}
+
+.account-confirm-actions .account-button-primary {
+  border: 0;
+  box-shadow: none;
+}
+
+.account-confirm-actions .account-button-secondary {
+  border: 2px solid #3045a0;
+  box-shadow: none;
+}
+
+.account-confirm-actions span {
+  font-style: italic;
+}
+
+.account-modal-window--suspend-member .account-modal-subtitle {
+  margin-bottom: var(--account-space-4);
+  font-weight: 700;
+  text-align: center;
+}
+
+.account-modal-window--suspend-member > label {
+  display: inline-block;
+  width: 28%;
+  margin-right: 3%;
+  text-align: right;
+}
+
+.account-modal-window--suspend-member > select {
+  width: 69%;
+  display: inline-block;
+}
+
+.account-modal-window--suspend-member .account-modal-actions {
+  margin-top: var(--account-space-5);
+}
+
+.account-modal-window--edit-admin {
+  width: min(520px, 100%);
+}
+
+.account-modal-window--create-admin input,
+.account-modal-window--edit-admin input {
+  border-color: #767676;
+  border-radius: 24px;
+  background: #f8f8f8;
+}
+
+.account-field-help {
+  margin: 0;
+  color: var(--account-text);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .account-content {
+    padding-bottom: var(--account-space-5);
+  }
+
+  .account-filter-row,
+  .account-filter-row--admins {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .account-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-create-button,
+  .account-clear-button {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 680px) {
+  .account-page-heading {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: var(--account-space-3);
+  }
+
+  .account-mode-toggle {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+    margin-right: 0;
+  }
+
+  .account-page-heading h1 {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .account-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--account-space-1);
+  }
+
+  .account-count {
+    text-align: left;
+  }
+
+  .account-filter-row,
+  .account-filter-row--admins {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--account-space-3);
+  }
+
+  .account-sort-controls {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .account-pagination {
+    min-height: 54px;
+    padding-inline: var(--account-space-2);
+  }
+
+  .account-pagination ol {
+    gap: var(--account-space-1);
+  }
+
+  .account-pagination button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .account-pagination button.is-current img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .account-modal-backdrop {
+    padding: var(--account-space-3);
+  }
+
+  .account-modal-window {
+    max-height: calc(100vh - 24px);
+    padding: var(--account-space-4);
+  }
+
+  .account-modal-window form > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--account-space-1);
+  }
+
+  .account-modal-window form > div label {
+    text-align: left;
+  }
+}

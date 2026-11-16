@@ -1,0 +1,45 @@
+.drip-button-wrap {
+  position: relative;
+  display: flex;
+  min-height: 61px;
+  justify-content: center;
+}
+
+.drip-button-drips {
+  position: absolute;
+  top: 35px;
+  left: 50%;
+  z-index: 1;
+  width: 75px;
+  height: 40px;
+  transform: translateX(-50%);
+  background: var(--drip-button-color);
+  mask: url('./login-drips.svg') center / 100% 100% no-repeat;
+  -webkit-mask: url('./login-drips.svg') center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.drip-button {
+  position: relative;
+  z-index: 2;
+  align-self: flex-start;
+  min-width: 84px;
+  min-height: 43px;
+  padding: 6px 24px;
+  border: 0;
+  border-radius: 15px;
+  color: #171717;
+  background: var(--drip-button-color);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drip-button:focus-visible {
+  outline: 2px solid var(--drip-button-focus);
+  outline-offset: 3px;
+}
+
+.drip-button:disabled {
+  cursor: wait;
+}
