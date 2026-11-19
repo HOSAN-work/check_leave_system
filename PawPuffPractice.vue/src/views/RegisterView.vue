@@ -2,8 +2,19 @@
 
 <!-- JavaScript 邏輯 -->
 <script setup>
-import { reactive, ref } from 'vue'
+import { nextTick, reactive, ref } from 'vue'
+// RouterLink：按下「登入」時由 Vue Router 切換頁面，不會重新載入整份網站
+import { RouterLink } from 'vue-router'
 import api from '@/services/api'
+import '../assets/register.css'
+
+// 頁面背景與圖示沿用登入頁的素材
+import registerbackground from '../assets/login-background.png'
+// 左下角的紅色角色（去背 PNG，站在頁面底部）
+import registerCharacter from '../assets/register-character.png'
+import loginEyeIcon from '../assets/login-eye.svg'
+import oauthGoogleIcon from '../assets/oauth-google.svg'
+import oauthAppleIcon from '../assets/oauth-apple.svg'
 
 //表單資料
 const form = reactive({
@@ -18,14 +29,125 @@ const form = reactive({
 //畫面狀態
 const isSubmitting = ref(false)
 const successMessage = ref('')
+// 不是任何單一欄位造成的錯誤（例如後端沒啟動）才放在表單最下面
 const errorMessage = ref('')
+
+// 每個欄位自己的錯誤訊息：後端回 409 或 DTO 驗證失敗時，訊息要顯示在出錯的欄位下方
+const fieldErrors = reactive({
+  account: '',
+  nickname: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmpassword: '',
+})
+
+// 欄位名稱對應到 input 的 id，衝突時可以把焦點移到出錯的欄位
+const fieldElementIds = {
+  account: 'register-account',
+  nickname: 'register-nickname',
+  email: 'register-email',
+  phone: 'register-phone',
+  password: 'register-password',
+  confirmpassword: 'register-confirm-password',
+}
+
+// 後端 409 的 message 會直接指出是哪一個欄位重複
+const conflictMessages = {
+  account: '此帳號已被使用，請換一個帳號',
+  email: '此 Email 已註冊過其他帳號，請換一個 Email',
+  phone: '這支電話已註冊過其他帳號，請換一支號碼，或清空改為不填',
+}
+
+// ASP.NET Core 的 DTO 驗證錯誤 key（不分大小寫）對應回前端欄位
+const dtoFieldByKey = {
+  account: 'account',
+  password: 'password',
+  confirmpassword: 'confirmpassword',
+  nickname: 'nickname',
+  email: 'email',
+  phone: 'phone',
+}
+
+// 表單元素，用來把焦點移到出錯的欄位
+const formRef = ref(null)
+
+// 電話格式：09 開頭，共 10 個數字
+const PHONE_PATTERN = /^09\d{8}$/
+
+function clearFieldErrors() {
+  Object.keys(fieldErrors).forEach((field) => {
+    fieldErrors[field] = ''
+  })
+}
+
+// 後端 message 只有文字，這裡判斷是哪一個欄位撞到唯一性規則
+function conflictFieldFor(message) {
+  if (!message) {
+    return ''
+  }
+  if (message.includes('電話')) {
+    return 'phone'
+  }
+  if (message.toLowerCase().includes('email')) {
+    return 'email'
+  }
+  if (message.includes('帳號')) {
+    return 'account'
+  }
+  return ''
+}
+
+async function focusField(field) {
+  await nextTick()
+  const input = formRef.value?.querySelector(`#${fieldElementIds[field]}`)
+  input?.focus()
+}
+
+// 電話只收數字：貼上含空白或連字號的號碼也會自動清乾淨
+function handlePhoneInput(event) {
+  const digitsOnly = event.target.value.replace(/\D/g, '')
+  if (digitsOnly !== event.target.value) {
+    event.target.value = digitsOnly
+    form.phone = digitsOnly
+  }
+  fieldErrors.phone = ''
+}
+
+// 以下三個是「只影響畫面」的狀態，不會送進後端
+// 密碼／確認密碼是否要顯示成明碼
+const isPasswordVisible = ref(false)
+const isConfirmPasswordVisible = ref(false)
+// 是否已勾選同意條款（後端沒有這個欄位，所以只在前端檢查）
+const acceptedTerms = ref(false)
+// Google／Apple 登入還沒接上 OAuth，點擊時顯示提示
+const socialMessage = ref('')
+
+function openSocialLogin(provider) {
+  // 之後接上第三方登入時，這裡改成導向該平台的授權頁
+  socialMessage.value = `${provider} 登入尚未開放，請先使用帳號密碼註冊`
+}
 
 //按下「註冊」後執行...
 async function registerMember() {
   //使用者按下註冊,先清除上一次的成功/錯誤訊息
   //三個都是 ref，JavaScript 裡都必須使用 .value
-  successMessage.value = ref('')
-  errorMessage.value = ref('')
+  successMessage.value = ''
+  errorMessage.value = ''
+  clearFieldErrors()
+
+  // 尚未勾選同意條款就不送 API
+  if (!acceptedTerms.value) {
+    errorMessage.value = '請先同意 Terms 與 Privacy Policies'
+    return
+  }
+
+  // 電話是選填，但有填就必須符合「09 開頭，共 10 個數字」
+  if (form.phone && !PHONE_PATTERN.test(form.phone)) {
+    fieldErrors.phone = '電話需為 09 開頭、共 10 個數字，或清空改為不填'
+    focusField('phone')
+    return
+  }
 
   //表示：註冊請求正在處理中
   isSubmitting.value = true
@@ -125,46 +247,48 @@ async function registerMember() {
     // 不會進入大括號，也不會報錯
 
     if (responseData?.message) {
+      // 後端唯一性檢查會回 409，message 已經指出是 帳號 / Email / 電話 重複
+      const conflictField = conflictFieldFor(responseData.message)
+      if (conflictField) {
+        fieldErrors[conflictField] = conflictMessages[conflictField]
+        focusField(conflictField)
+        return
+      }
+
       errorMessage.value = responseData.message
       return
     }
 
     //處理「後端 DTO 驗證失敗」時，ASP.NET Core 回傳的錯誤訊息
     //例如註冊時密碼太短、Email 格式錯誤
-    //?. 稱為 Optional Chaining（選擇性串連）
-    // responseData 存在 → 讀取 errors
-    // responseData 不存在 → 得到 undefined，不會當機
+    // responseData.errors 是「欄位名稱 → 錯誤訊息陣列」的物件，
+    // 所以可以依照 key 把訊息放回對應的欄位，而不是全部擠在表單最下面。
     if (responseData?.errors) {
-      const messages = Object.values(responseData.errors).flat()
+      // 找不到對應欄位的訊息（例如 ConfirmPassword 這種沒有獨立欄位的檢查）才留給表單下方顯示
+      const unmatchedMessages = []
 
-      // 假如：
-      // responseData.errors = {
-      //   Password: ['密碼必須至少 8 個字元'],
-      //   Email: ['Email 格式不正確'],
-      // }
-      // Object.values(responseData.errors)
-      // => 外層原本是物件 {} 把它轉成陣列 [],會移除 Password、Email 這些欄位名稱，只保留內容
-      //Object.values() 的作用就是：不要物件的屬性名稱，只取出每個屬性的值，並把這些值裝進一個新陣列。
-      // [
-      //   ['密碼必須至少 8 個字元'],
-      //   ['Email 格式不正確'],
-      // ]
-      //接著 .flat() 再把內層陣列攤平：
-      // [
-      //   '密碼必須至少 8 個字元',
-      //   'Email 格式不正確',
-      // ]
+      Object.entries(responseData.errors).forEach(([key, messages]) => {
+        const field = dtoFieldByKey[String(key).toLowerCase()]
+        const message = Array.isArray(messages) ? messages[0] : String(messages)
 
-      errorMessage.value = messages[0] ?? '輸入資料不正確'
-      //messages[0]:'密碼必須至少 8 個字元'
-      // => errorMessage.value = '密碼必須至少 8 個字元'
-      //
-      // 而：undefined ?? '輸入資料不正確'
-      // => errorMessage.value = '輸入資料不正確'
+        // 同一個欄位只保留第一則訊息
+        if (field && !fieldErrors[field]) {
+          fieldErrors[field] = message
+          return
+        }
+
+        unmatchedMessages.push(message)
+      })
+
+      errorMessage.value = unmatchedMessages[0] ?? ''
+
+      // 把焦點移到第一個出錯的欄位，使用者才知道要看哪裡
+      const firstErrorField = Object.keys(fieldElementIds).find((field) => fieldErrors[field])
+      if (firstErrorField) {
+        focusField(firstErrorField)
+      }
 
       return
-      //迴圈結束
-      // errorMessage.value = '註冊失敗，請確認後端是否已啟動' 不會執行
     }
     //// 條件不成立，才會走到這裡
     // 無法連線或其他錯誤
@@ -178,207 +302,243 @@ async function registerMember() {
 
 <!-- 畫面與表單 -->
 <template>
-  <!-- main代表頁面的主要內容 -->
   <main class="register-page">
-    <h1>會員註冊</h1>
+    <img class="register-background" :src="registerbackground" alt="" aria-hidden="true" />
+    <img
+      class="register-character"
+      :src="registerCharacter"
+      alt=""
+      aria-hidden="true"
+      draggable="false"
+    />
 
-    <!-- 加入表單 -->
-    <!-- @submit 表示使用者送出表單時.prevent 阻止瀏覽器重新整理頁面 -->
-    <!-- 送出表單時，不要重新整理頁面，改成執行 registerMember() -->
-    <form @submit.prevent="registerMember" class="register-form">
-      <!-- 先建立一個帳號欄位 -->
-      <!-- 輸入框的名稱是「帳號」 -->
-      <label>
-        帳號
-        <!-- v-model 雙向綁定 -->
-        <!--使用者在輸入框輸入的 與  form.account 做綁定-->
-        <!-- 輸入 pawpuff01 -綁定-> form.account === 'pawpuff01' -->
-        <!-- type="text" 代表一般文字輸入框  -->
-        <!-- autocomplete="username" 是在告訴 Chrome、Safari 等瀏覽器：這個輸入框是使用者的登入帳號 就可能顯示建議：pawpuff01 
-使用者點選後，瀏覽器會協助填入帳號-->
-        <!-- required 代表必填。 沒有輸入時，瀏覽器會阻止表單送出-->
-        <input v-model.trim="form.account" type="text" autocomplete="username" required />
-      </label>
+    <div class="register-content">
+      <h1 class="register-title">會員註冊</h1>
+      <p class="register-subtitle">
+        Let's get you all up so you can access your personal account.
+      </p>
 
-      <!-- 為什麼密碼沒有 .trim？ 因為空白可能是密碼的一部分。
-    因此密碼通常不要自動 .trim。-->
-      <!-- type="password" 會用圓點或星號遮住輸入內容：••• -->
-      <!-- autocomplete="new-password"  瀏覽器可能會：建議安全密碼/提示是否儲存密碼/避免自動填入其他網站的舊密碼-->
-      <label>
-        密碼
-        <input v-model="form.password" type="password" autocomplete="new-password" required />
-      </label>
+      <form
+        ref="formRef"
+        class="register-form"
+        :aria-busy="isSubmitting"
+        @submit.prevent="registerMember"
+      >
+        <div class="register-field">
+          <label for="register-account">帳號</label>
+          <input
+            id="register-account"
+            v-model.trim="form.account"
+            :class="{ 'is-invalid': fieldErrors.account }"
+            :aria-invalid="fieldErrors.account ? 'true' : undefined"
+            :aria-describedby="fieldErrors.account ? 'register-account-error' : undefined"
+            type="text"
+            autocomplete="username"
+            required
+            @input="fieldErrors.account = ''"
+          />
+          <p
+            v-if="fieldErrors.account"
+            id="register-account-error"
+            class="register-field-error"
+            role="alert"
+          >
+            {{ fieldErrors.account }}
+          </p>
+        </div>
 
-      <label>
-        確認密碼
-        <input
-          v-model="form.confirmpassword"
-          type="password"
-          autocomplete="new-password"
-          required
-        />
-      </label>
+        <div class="register-field">
+          <label for="register-nickname">暱稱</label>
+          <input
+            id="register-nickname"
+            v-model.trim="form.nickname"
+            :class="{ 'is-invalid': fieldErrors.nickname }"
+            :aria-invalid="fieldErrors.nickname ? 'true' : undefined"
+            :aria-describedby="fieldErrors.nickname ? 'register-nickname-error' : undefined"
+            type="text"
+            autocomplete="nickname"
+            required
+            @input="fieldErrors.nickname = ''"
+          />
+          <p
+            v-if="fieldErrors.nickname"
+            id="register-nickname-error"
+            class="register-field-error"
+            role="alert"
+          >
+            {{ fieldErrors.nickname }}
+          </p>
+        </div>
 
-      <label>
-        暱稱
-        <input v-model.trim="form.nickname" type="text" required />
-      </label>
+        <div class="register-field">
+          <label for="register-email">Email</label>
+          <input
+            id="register-email"
+            v-model.trim="form.email"
+            :class="{ 'is-invalid': fieldErrors.email }"
+            :aria-invalid="fieldErrors.email ? 'true' : undefined"
+            :aria-describedby="fieldErrors.email ? 'register-email-error' : undefined"
+            type="email"
+            autocomplete="email"
+            required
+            @input="fieldErrors.email = ''"
+          />
+          <p
+            v-if="fieldErrors.email"
+            id="register-email-error"
+            class="register-field-error"
+            role="alert"
+          >
+            {{ fieldErrors.email }}
+          </p>
+        </div>
 
-      <label>
-        Email
+        <div class="register-field">
+          <label for="register-phone">電話（選填）</label>
+          <input
+            id="register-phone"
+            v-model.trim="form.phone"
+            :class="{ 'is-invalid': fieldErrors.phone }"
+            :aria-invalid="fieldErrors.phone ? 'true' : undefined"
+            :aria-describedby="fieldErrors.phone ? 'register-phone-error' : undefined"
+            type="tel"
+            inputmode="numeric"
+            maxlength="10"
+            pattern="09[0-9]{8}"
+            title="09 開頭，共 10 個數字"
+            autocomplete="tel"
+            placeholder="→ 09 開頭，共 10 個數字"
+            @input="handlePhoneInput"
+            @invalid.prevent="fieldErrors.phone = '電話需為 09 開頭、共 10 個數字，或清空改為不填'"
+          />
+          <p
+            v-if="fieldErrors.phone"
+            id="register-phone-error"
+            class="register-field-error"
+            role="alert"
+          >
+            {{ fieldErrors.phone }}
+          </p>
+        </div>
 
-        <!-- type="email" 告訴瀏覽器這是 Email 欄位 -->
-        <!-- 後端仍然要有： 
-        [EmailAddress(ErrorMessage = "Email 格式不正確")] -->
-        <!-- autocomplete="email" 告訴瀏覽器：這個輸入框是電子郵件 -->
-        <input v-model.trim="form.email" type="email" autocomplete="email" required />
-      </label>
+        <div class="register-field register-field--wide">
+          <label for="register-password">密碼</label>
+          <div class="register-input-wrap">
+            <input
+              id="register-password"
+              v-model="form.password"
+              :class="{ 'is-invalid': fieldErrors.password }"
+              :aria-invalid="fieldErrors.password ? 'true' : undefined"
+              :aria-describedby="fieldErrors.password ? 'register-password-error' : undefined"
+              :type="isPasswordVisible ? 'text' : 'password'"
+              autocomplete="new-password"
+              required
+              @input="fieldErrors.password = ''"
+            />
+            <button
+              class="register-eye"
+              type="button"
+              :aria-label="isPasswordVisible ? '隱藏密碼' : '顯示密碼'"
+              :aria-pressed="isPasswordVisible"
+              @click="isPasswordVisible = !isPasswordVisible"
+            >
+              <img :src="loginEyeIcon" alt="" aria-hidden="true" />
+            </button>
+          </div>
+          <p
+            v-if="fieldErrors.password"
+            id="register-password-error"
+            class="register-field-error"
+            role="alert"
+          >
+            {{ fieldErrors.password }}
+          </p>
+        </div>
 
-      <label>
-        電話(選填)
+        <div class="register-field register-field--wide">
+          <label for="register-confirm-password">確認密碼</label>
+          <div class="register-input-wrap">
+            <input
+              id="register-confirm-password"
+              v-model="form.confirmpassword"
+              :class="{ 'is-invalid': fieldErrors.confirmpassword }"
+              :aria-invalid="fieldErrors.confirmpassword ? 'true' : undefined"
+              :aria-describedby="
+                fieldErrors.confirmpassword ? 'register-confirm-password-error' : undefined
+              "
+              :type="isConfirmPasswordVisible ? 'text' : 'password'"
+              autocomplete="new-password"
+              required
+              @input="fieldErrors.confirmpassword = ''"
+            />
+            <button
+              class="register-eye"
+              type="button"
+              :aria-label="isConfirmPasswordVisible ? '隱藏確認密碼' : '顯示確認密碼'"
+              :aria-pressed="isConfirmPasswordVisible"
+              @click="isConfirmPasswordVisible = !isConfirmPasswordVisible"
+            >
+              <img :src="loginEyeIcon" alt="" aria-hidden="true" />
+            </button>
+          </div>
+          <p
+            v-if="fieldErrors.confirmpassword"
+            id="register-confirm-password-error"
+            class="register-field-error"
+            role="alert"
+          >
+            {{ fieldErrors.confirmpassword }}
+          </p>
+        </div>
 
-        <!-- type="tel" 告訴瀏覽器：這是一個電話號碼輸入框 -->
-        <!-- 在電腦上看起來和普通文字輸入框很像。  -->
-        <!-- 在手機上，瀏覽器通常會顯示適合輸入電話的鍵盤 -->
+        <label class="register-terms">
+          <input v-model="acceptedTerms" type="checkbox" />
+          <span>
+            I agree to all the <a class="register-terms-link" href="#" @click.prevent>Terms</a> and
+            <a class="register-terms-link" href="#" @click.prevent>Privacy Policies</a>
+          </span>
+        </label>
 
-        <!-- autocomplete="tel" 告訴瀏覽器：這個欄位要填電話號碼 -->
-        <!-- 如果使用者曾經在瀏覽器中保存個人資料，瀏覽器可能建議： 0912345678 -->
-        <input
-          v-model="form.phone"
-          type="tel"
-          autocomplete="tel"
-          placeholder="-> 09開頭,共10個數字"
-        />
-      </label>
+        <!-- type="submit" 表示這是「送出表單」按鈕 -->
+        <!-- :disabled="isSubmitting" 註冊中會停用按鈕，避免重複送出 -->
+        <button class="register-submit" type="submit" :disabled="isSubmitting">
+          {{ isSubmitting ? '建立中...' : '建立帳號' }}
+        </button>
 
-      <!-- type="submit" 表示這是「送出表單」按鈕 -->
+        <p v-if="errorMessage" class="register-message register-message--error" role="alert">
+          {{ errorMessage }}
+        </p>
+        <p v-if="successMessage" class="register-message register-message--success" role="status">
+          {{ successMessage }}
+        </p>
+      </form>
 
-      <!-- 完整寫法是：v-bind:disabled="isSubmitting" -->
-      <!-- 簡寫成： :disabled="isSubmitting"  -->
-      <!-- : 表示 disabled 後面接的是 JavaScript 資料，不是普通文字 -->
-      <!-- isSubmitting.value = true => 按鈕會變成停用狀態 disabled-->
+      <p class="register-login">
+        已經有帳號？<RouterLink to="/login">登入</RouterLink>
+      </p>
 
-      <!-- {{ }} 表示把 JavaScript 的結果顯示在畫面上 -->
-      <!-- isSubmitting 是 true
-          → 顯示「註冊中…」
-
-          isSubmitting 是 false
-          → 顯示「註冊」 -->
-
-      <!-- 為什麼模板裡不用 .value？ -->
-      <!-- JavaScript 裡要寫：isSubmitting.value = true  -->
-      <!-- 但 Vue <template> 會自動把 ref 解開，所以模板直接寫： isSubmitting -->
-      <button type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? '註冊中...' : '註冊' }}
-      </button>
-    </form>
-
-    <!-- true => 顯示成功訊息 -->
-    <p v-if="successMessage" class="success-message">
-      {{ successMessage }}
-    </p>
-
-    <!-- false => 顯示失敗訊息 -->
-    <p v-if="errorMessage" class="error-message">
-      {{ errorMessage }}
-    </p>
+      <div class="register-social">
+        <p class="register-social-divider">或者用其他登入？</p>
+        <div class="register-social-buttons">
+          <button
+            class="register-social-button"
+            type="button"
+            aria-label="使用 Google 帳號註冊"
+            @click="openSocialLogin('Google')"
+          >
+            <img :src="oauthGoogleIcon" alt="" aria-hidden="true" />
+          </button>
+          <button
+            class="register-social-button"
+            type="button"
+            aria-label="使用 Apple 帳號註冊"
+            @click="openSocialLogin('Apple')"
+          >
+            <img :src="oauthAppleIcon" alt="" aria-hidden="true" />
+          </button>
+        </div>
+        <p class="register-social-message" role="status" aria-atomic="true">{{ socialMessage }}</p>
+      </div>
+    </div>
   </main>
 </template>
-
-<!-- 這個頁面的 CSS -->
-<!-- <style scoped> 表示這些 CSS 只套用在目前的 RegisterView.vue，盡量不要影響其他 Vue 頁面 -->
-<!-- <style> 可能會影響整個網站 -->
-<style scoped>
-/* class = "register-page" */
-.register-page {
-  /* min() : 從兩個數值中選擇較小的  */
-  /* 例如瀏覽器寬度是 1200px：min(1200px, 480px) → 480px */
-  width: min(100%, 480px);
-
-  /* margin:上下、左右的簡寫 */
-  /* 上下留 40px 左右自動分配空間 */
-  margin: 40px auto;
-  /* 表示內容和容器邊緣之間留 24px */
-  padding: 24px;
-  /* 外框
-┌─────────────────────┐
-│      24px 空間       │
-│   會員註冊與表單內容   │
-│      24px 空間       │
-└─────────────────────┘ */
-
-  /* margin 是元素外面的空間，padding 是元素裡面的空間 */
-}
-/* display: grid; 把表單變成 CSS Grid 排版 */
-/* 所以表單裡的每一個子元素會由上往下排列:
-帳號欄位
-密碼欄位
-確認密碼欄位
-暱稱欄位
-Email 欄位
-電話欄位
-註冊按鈕*/
-/* gap: 16px; 讓表單裡每個項目之間保留 16px 距離 */
-.register-form {
-  display: grid;
-  gap: 16px;
-}
-/* 
-┌──────────────────┐
-│ 第一個完整 label   │
-├──────────────────┤
-│ 第二個完整 label   │
-├──────────────────┤
-│ button           │
-└──────────────────┘
-*/
-
-/*  display: grid; 讓 label 裡的文字和輸入框上下排列
-帳號
-[輸入框]
-如果沒有這個設定，它們可能排在同一行： 帳號 [輸入框]
-*/
-
-/* gap: 6px  欄位名稱和輸入框之間留 6px
-帳號
-  ↕ 6px
-[輸入框]
-*/
-label {
-  display: grid;
-  gap: 6px;
-}
-/* 
-帳號
-[帳號輸入框]
-
-密碼
-[密碼輸入框]
-
-[註冊]
- */
-
-/* padding: 12px; 表示按鈕文字和按鈕邊框之間留 12px */
-/* cursor: pointer;滑鼠移到按鈕上時，游標會變成手指形狀 */
-button {
-  padding: 12px;
-  cursor: pointer;
-}
-
-/* cursor: not-allowed; 滑鼠移到停用按鈕時，游標顯示「禁止操作」的樣式  */
-/* opacity: 1   → 完全清楚
-opacity: 0.6 → 稍微透明
-opacity: 0   → 完全看不到 */
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.error-message {
-  color: red;
-}
-
-.success-message {
-  color: green;
-}
-</style>

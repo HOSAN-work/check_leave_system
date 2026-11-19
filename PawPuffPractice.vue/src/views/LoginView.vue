@@ -9,7 +9,7 @@ import { reactive, ref } from 'vue'
 // 沒有切換頁面，所以不需要 useRouter()
 // 現在我們改成登入成功後自動回首頁：
 // await router.push('/')
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 
 import '../assets/login.css'
 
@@ -406,6 +406,11 @@ async function submitlogin() {
         </div>
       </form>
 
+      <!-- 還沒有帳號？註冊：位置在登入按鈕下方、分隔線上方 -->
+      <p class="login-register">
+        還沒有帳號？<RouterLink to="/register">註冊</RouterLink>
+      </p>
+
       <!-- Google／Apple 登入：目前沒有後端 OAuth，只做外觀，點擊顯示尚未開放 -->
       <div class="login-social">
         <p class="login-social-divider">或</p>
@@ -416,7 +421,7 @@ async function submitlogin() {
             aria-label="使用 Google 帳號登入"
             @click="openSocialLogin('Google')"
           >
-            <img :src="oauthGoogleIcon" alt="" aria-hidden="true" />Google
+            <img :src="oauthGoogleIcon" alt="" aria-hidden="true" />
           </button>
           <button
             class="login-social-button"
@@ -424,19 +429,11 @@ async function submitlogin() {
             aria-label="使用 Apple 帳號登入"
             @click="openSocialLogin('Apple')"
           >
-            <img :src="oauthAppleIcon" alt="" aria-hidden="true" />Apple
+            <img :src="oauthAppleIcon" alt="" aria-hidden="true" />
           </button>
         </div>
         <p class="login-social-message" role="status" aria-atomic="true">{{ socialMessage }}</p>
       </div>
-
-      <!-- 還沒有帳號？註冊：依 Figma 要放在登入按鈕下方置中，
-           現在先保留程式碼不顯示；要啟用時把這段註解拿掉即可
-           （RouterLink 由 vue-router 全域註冊，不需要另外 import）
-      <p class="login-register">
-        還沒有帳號？<RouterLink to="/register">註冊</RouterLink>
-      </p>
-      -->
 
       <p class="visually-hidden" role="status" aria-atomic="true">
         {{ isSubmitting ? '登入中' : '' }}

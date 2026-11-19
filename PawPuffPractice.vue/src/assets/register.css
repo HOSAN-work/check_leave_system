@@ -1,0 +1,395 @@
+/* 會員註冊頁：尺寸比例依照 Figma「會員註冊」frame（1513×1022，內容欄約 640px、偏右對齊） */
+.register-page {
+  /* 這一頁自己的變數，集中放在最外層容器，避免影響其他頁面 */
+  --register-ink: var(--color-text-strong);
+  --register-dark: #181818;
+  --register-muted: #717171;
+  --register-border: #333;
+  --register-surface: #fff;
+  --register-accent: #515def;
+  --register-coral: var(--color-action-coral);
+  --register-danger: #b53a3a;
+  --register-space-2: var(--space-2);
+  --register-space-3: var(--space-3);
+
+  /* 版面量測值：內容欄寬、右側留白、欄位高度、欄位間距 */
+  --register-column: 640px;
+  --register-gutter: clamp(24px, 8.3vw, 128px);
+  --register-field-height: 54px;
+  --register-password-height: 60px;
+  --register-row-gap: 28px;
+  --register-column-gap: 24px;
+
+  /* 左下角色：Figma 裡寬約 185px，右緣距離內容欄左邊 22px */
+  --register-character-width: clamp(120px, 12.2vw, 185px);
+  --register-character-gap: 22px;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  min-height: 100svh;
+  color: var(--register-ink);
+  background: var(--color-paper);
+  font-family: Arial, 'Noto Sans TC', sans-serif;
+}
+
+/* 背景跟著頁面高度一起長，內容比視窗高時也不會露白 */
+.register-background {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 內容欄在寬螢幕上刻意靠右，讓左側的角色與紙張紋理露出來（與 Figma 一致） */
+.register-content {
+  position: relative;
+  z-index: 1;
+  width: min(var(--register-column), calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(48px, 10.7vh, 110px) 0 clamp(40px, 5vh, 50px);
+}
+
+.register-title {
+  margin: 0 0 8px;
+  color: rgb(0 0 0 / 88%);
+  font-family: 'Averia Libre', 'Noto Sans TC', sans-serif;
+  font-size: clamp(30px, 3vw, 44px);
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: left;
+  text-shadow: 0 4px 4px rgb(0 0 0 / 25%);
+}
+
+.register-subtitle {
+  margin: 0 0 clamp(32px, 5.3vh, 52px);
+  color: var(--register-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* 兩欄欄位：帳號｜暱稱、Email｜電話，其餘整列寬 */
+.register-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--register-row-gap) var(--register-column-gap);
+}
+
+.register-field {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.register-field--wide {
+  grid-column: 1 / -1;
+}
+
+/* 欄位名稱壓在輸入框上緣，用「跟頁面一樣的紙張色」把邊框蓋出一個缺口，
+   這樣標題不會像貼了一塊白標籤 */
+.register-field > label {
+  position: absolute;
+  z-index: 1;
+  top: -9px;
+  left: 8px;
+  padding: 0 6px;
+  color: var(--register-dark);
+  background: var(--color-paper);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/* 左下角色：圖檔已去背，站在頁面底部，位置跟著內容欄一起移動 */
+.register-character {
+  position: absolute;
+  z-index: 0;
+  bottom: 0;
+  left: calc(
+    100% - var(--register-gutter) - var(--register-column) - var(--register-character-gap) -
+      var(--register-character-width)
+  );
+  width: var(--register-character-width);
+  height: auto;
+  /* 先保留比例，圖檔載入時版面不會跳動 */
+  aspect-ratio: 331 / 436;
+  pointer-events: none;
+  user-select: none;
+}
+
+.register-field input {
+  width: 100%;
+  min-width: 0;
+  height: var(--register-field-height);
+  padding: 0 12px;
+  border: 1px solid var(--register-border);
+  border-radius: 5px;
+  color: var(--register-ink);
+  background: var(--register-surface);
+  font: inherit;
+  font-size: 15px;
+}
+
+.register-field input::placeholder {
+  color: var(--register-muted);
+  opacity: 1;
+}
+
+/* 電話欄的提示字在 Figma 是深灰，比一般 placeholder 明顯 */
+.register-field input[type='tel']::placeholder {
+  color: #3a3a3a;
+}
+
+/* 有錯誤的欄位：邊框轉紅，和下方的訊息一起指出問題 */
+.register-field input.is-invalid {
+  border-color: var(--register-danger);
+  background: #fffafa;
+}
+
+/* 欄位自己的錯誤訊息：出現在輸入框正下方，指出是哪一個欄位有問題 */
+.register-field-error {
+  margin: 6px 0 0 2px;
+  color: var(--register-danger);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.register-field input:focus-visible,
+.register-eye:focus-visible,
+.register-social-button:focus-visible,
+.register-submit:focus-visible,
+.register-terms input:focus-visible {
+  outline: 2px solid var(--register-accent);
+  outline-offset: 2px;
+}
+
+/* 密碼欄位右側的顯示／隱藏切換 */
+.register-input-wrap {
+  position: relative;
+  display: grid;
+}
+
+.register-input-wrap input {
+  height: var(--register-password-height);
+  padding-right: 46px;
+  letter-spacing: 1px;
+}
+
+.register-eye {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.register-eye img {
+  width: 18px;
+  height: 18px;
+}
+
+/* 密碼尚未顯示時，眼睛加一條斜線（與 Figma 的隱藏圖示一致） */
+.register-eye::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 1.5px;
+  transform: translate(-50%, -50%) rotate(-40deg);
+  background: #717171;
+  content: '';
+}
+
+/* 已經顯示密碼就不畫斜線 */
+.register-eye[aria-pressed='true']::after {
+  display: none;
+}
+
+.register-eye:hover {
+  background: rgb(0 0 0 / 6%);
+}
+
+/* 同意條款 */
+.register-terms {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 10px;
+  color: var(--register-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.register-terms input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--register-accent);
+  cursor: pointer;
+}
+
+.register-terms-link {
+  color: var(--register-coral);
+  text-decoration: none;
+}
+
+.register-terms-link:hover {
+  text-decoration: underline;
+}
+
+/* 主要動作 */
+.register-submit {
+  grid-column: 1 / -1;
+  min-height: 47px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--register-accent);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.register-submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.register-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.register-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.register-message--error {
+  color: var(--register-danger);
+}
+
+.register-message--success {
+  color: var(--color-success);
+}
+
+/* 已經有帳號？登入 */
+.register-login {
+  margin: 18px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.register-login a {
+  color: var(--register-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.register-login a:hover {
+  text-decoration: underline;
+}
+
+/* 或者用其他登入？ */
+.register-social {
+  margin-top: 34px;
+}
+
+.register-social-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--register-space-3);
+  margin: 0 0 26px;
+  color: var(--register-muted);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.register-social-divider::before,
+.register-social-divider::after {
+  height: 1px;
+  flex: 1 1 auto;
+  background: rgb(0 0 0 / 18%);
+  content: '';
+}
+
+.register-social-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+}
+
+.register-social-button {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  border: 1px solid var(--register-accent);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.register-social-button img {
+  width: 18px;
+  height: 18px;
+}
+
+.register-social-button:hover {
+  background: rgb(255 255 255 / 40%);
+}
+
+.register-social-message {
+  min-height: 16px;
+  margin: var(--register-space-2) 0 0;
+  color: var(--register-accent);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* 寬螢幕：內容欄靠右，左側留給角色 */
+@media (min-width: 1024px) {
+  .register-content {
+    margin-right: var(--register-gutter);
+    margin-left: auto;
+  }
+}
+
+/* 內容欄置中的小螢幕上沒有空間放角色，直接隱藏避免壓到表單 */
+@media (max-width: 1023px) {
+  .register-character {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .register-content {
+    width: calc(100% - 32px);
+    padding: 36px 0 48px;
+  }
+
+  .register-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .register-social-buttons {
+    gap: var(--register-space-3);
+  }
+}

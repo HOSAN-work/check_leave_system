@@ -17,10 +17,17 @@ import { computed, onMounted, watch } from 'vue'
 import { useAuth } from './composables/useAuth.js'
 
 const route = useRoute()
+// 註冊頁和登入頁一樣是滿版紙張版面（依 Figma），不需要再疊一層表頭
 const hidesGlobalHeader = computed(() =>
-  ['login', 'member', 'admin-clock', 'admin-clock-records', 'admin-users', 'admin-leave'].includes(
-    route.name,
-  ),
+  [
+    'login',
+    'register',
+    'member',
+    'admin-clock',
+    'admin-clock-records',
+    'admin-users',
+    'admin-leave',
+  ].includes(route.name),
 )
 const router = useRouter()
 

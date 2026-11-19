@@ -6,6 +6,8 @@
   --login-error: #b53a3a;
   --login-info: #216a91;
   --login-button: #f6b9af;
+  /* Figma 上社群按鈕外框與註冊頁主按鈕用的藍紫色 */
+  --login-accent: #515def;
   --login-space-1: var(--space-1);
   --login-space-2: var(--space-1-5);
   --login-space-3: var(--space-2);
@@ -238,7 +240,7 @@
 
 /* Google／Apple 登入：先做外觀，尚未接上 OAuth */
 .login-social {
-  margin-top: var(--login-space-6);
+  margin-top: var(--login-space-5);
 }
 
 .login-social-divider {
@@ -266,29 +268,23 @@
 }
 
 .login-social-button {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  gap: var(--login-space-2);
-  padding: 0 var(--login-space-3);
-  border: 1px solid var(--login-border);
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--login-accent);
   border-radius: 6px;
-  color: var(--login-dark);
-  background: #fff;
-  font-family: inherit;
-  font-size: 13px;
+  background: transparent;
   cursor: pointer;
 }
 
 .login-social-button img {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
 }
 
 .login-social-button:hover {
-  background: #f7f7f7;
+  background: rgb(255 255 255 / 40%);
 }
 
 .login-social-button:focus-visible {
@@ -305,7 +301,7 @@
   text-align: center;
 }
 
-/* 「還沒有帳號？註冊」：template 目前註解中，取消註解後樣式即生效 */
+/* 還沒有帳號？註冊：在登入按鈕下方置中 */
 .login-register {
   margin: var(--login-space-6) 0 0;
   color: var(--login-dark);
@@ -315,8 +311,12 @@
 }
 
 .login-register a {
-  color: var(--login-info);
+  color: var(--login-dark);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.login-register a:hover {
   text-decoration: underline;
 }
 
@@ -370,6 +370,21 @@
   top: 77%;
   left: 41.9%;
   width: clamp(120px, 10.95vw, 165px);
+}
+
+/* 視窗高度較矮（例如 1280×720）時壓縮縱向間距，避免內容被切掉 */
+@media (min-width: 900px) and (max-height: 780px) {
+  .login-title {
+    margin-bottom: 28px;
+  }
+
+  .login-register {
+    margin-top: var(--login-space-4);
+  }
+
+  .login-social {
+    margin-top: var(--login-space-4);
+  }
 }
 
 .visually-hidden {
