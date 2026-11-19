@@ -1,62 +1,119 @@
 <script setup>
-import {useAuth} from '@/composables/useAuth'
-import { RouterLink } from 'vue-router';
+import { RouterLink } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import '../assets/admin-clock.css'
+import '../assets/drip-button.css'
+import '../assets/member.css'
+import dashboardPaper from '../assets/dashboard-paper.png'
+import dashboardProfile from '../assets/profile.png'
+import navClockIcon from '../assets/dashboard-nav-clock.svg'
+import navUserIcon from '../assets/dashboard-nav-user.svg'
+import navLeaveIcon from '../assets/dashboard-nav-leave.svg'
+import navAdminIcon from '../assets/dashboard-nav-admin.svg'
 
-const{
-    currentUser,
-    authInitialized,
-    isLoggedIn
-} = useAuth()
+const { currentUser, authInitialized, isLoggedIn, logout } = useAuth()
 
 </script>
 
 <template>
-<main>
-    <h1>會員中心</h1>
-
-    <!-- 有沒有向後端確認登入狀態 -->
-    <!-- true => !true = false => 判斷下面的 v-else-if 和 v-else  -->
-    <!-- false => !false =true => 正在確認登入狀態 
-    下面的 v-else-if 和 v-else 都不再判斷 -->
-    <p v-if="!authInitialized">
-        正在確認登入狀態...
-    </p>
-
-    <!-- 有向後端確認登入狀態 => isLoggedIn = true -->
-    <section v-else-if="isLoggedIn">
-        <p>會員編號：{{ currentUser.id }}</p>
-        <p>帳號：{{currentUser.account }}</p>
-        <p>暱稱：{{ currentUser.nickname }}</p>
-        <p>Email：{{ currentUser.email }}</p>
-        <p>電話：{{ currentUser.phone || '尚未填寫' }}</p>
-        <p>點數：{{ currentUser.pointBalance }}</p>
-
-        <RouterLink to="/member/edit">
-            修改會員資料
+  <div class="admin-clock-page member-page">
+    <a class="dashboard-skip-link" href="#member-main">跳到主要內容</a>
+    <aside class="dashboard-sidebar">
+      <div class="dashboard-avatar" aria-hidden="true">
+        <img :src="dashboardProfile" alt="" />
+      </div>
+      <nav class="dashboard-nav" aria-label="主要導覽">
+        <RouterLink class="dashboard-nav-link" to="/admin/clock">
+          <img :src="navClockIcon" alt="" aria-hidden="true" />打卡功能
         </RouterLink>
-        <!-- 或者 :to="{ name: 'change-password' }" -->
-        <!-- : 是v-bind:的簡寫 -->
-        <RouterLink to="/member/password">
-            修改密碼
+        <RouterLink class="dashboard-nav-link is-section-active" aria-current="page" to="/member">
+          <img :src="navUserIcon" alt="" aria-hidden="true" />使用者中心
         </RouterLink>
-    </section>
+        <RouterLink
+          v-if="currentUser?.role === 'Admin'"
+          class="dashboard-nav-link"
+          to="/admin/leave"
+        >
+          <img :src="navLeaveIcon" alt="" aria-hidden="true" />請假功能
+        </RouterLink>
+        <RouterLink
+          v-if="currentUser?.role === 'Admin'"
+          class="dashboard-nav-link"
+          to="/admin/users"
+        >
+          <img :src="navAdminIcon" alt="" aria-hidden="true" />帳號管理
+        </RouterLink>
+      </nav>
+      <div class="dashboard-logout-wrap drip-button-wrap">
+        <span class="drip-button-drips" aria-hidden="true"></span>
+        <button class="dashboard-logout drip-button" type="button" @click="logout">登出</button>
+      </div>
+    </aside>
 
-    <!-- 登入狀態已確認完成而且使用者沒有登入 -->
-    <!-- 如果前面的條件全部不成立，就顯示這一段 -->
-    <p v-else >請先登入</p>
+    <main id="member-main" class="dashboard-paper" tabindex="-1">
+      <img class="dashboard-paper-texture" :src="dashboardPaper" alt="" aria-hidden="true" />
+      <div class="dashboard-content member-content">
+        <h1>使用者中心</h1>
+        <p v-if="!authInitialized" class="member-state">正在確認登入狀態...</p>
+        <section v-else-if="isLoggedIn" class="member-card" aria-labelledby="member-profile-title">
+          <div class="member-card-heading">
+            <img :src="dashboardProfile" alt="" aria-hidden="true" />
+            <div>
+              <h2 id="member-profile-title">{{ currentUser.nickname }}</h2>
+              <p>{{ currentUser.account }}</p>
+            </div>
+          </div>
+          <dl class="member-details">
+            <div>
+              <dt>會員編號</dt>
+              <dd>{{ currentUser.id }}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{{ currentUser.email }}</dd>
+            </div>
+            <div>
+              <dt>電話</dt>
+              <dd>{{ currentUser.phone || '尚未填寫' }}</dd>
+            </div>
+            <div>
+              <dt>點數</dt>
+              <dd>{{ currentUser.pointBalance }}</dd>
+            </div>
+          </dl>
 
 
-    <!-- 將它理解成 JavaScript：
-    if (!authInitialized) {
-        顯示「正在確認登入狀態」
-} else if (isLoggedIn) {
-        顯示會員內容
-} else {
-        顯示「請先登入」
-} -->
 
-</main>
+
+
+
+
+
+
+          
+          <div class="member-actions">
+            <RouterLink class="comic-button member-primary-action" to="/member/edit"
+              >修改會員資料</RouterLink
+            >
+
+
+
+
+
+
+
+            
+            <RouterLink class="comic-button member-secondary-action" to="/member/password"
+              >修改密碼</RouterLink
+            >
+          </div>
+        </section>
+        <p v-else class="member-state">請先登入</p>
+      </div>
+
+
+
+      
+    </main>
+  </div>
 </template>
-
-<style scoped>
-</style>

@@ -51,7 +51,9 @@
   text-shadow: 0 4px 4px rgb(0 0 0 / 25%);
   text-align: center;
 }
-.leave-page-content > section { margin-bottom: var(--leave-space-5); }
+.leave-page-content > section {
+  margin-bottom: var(--leave-space-5);
+}
 .leave-page-content h2 {
   margin: 0 0 var(--leave-space-4);
   color: rgb(0 0 0 / 75%);
@@ -59,7 +61,9 @@
   font-weight: 700;
   text-shadow: 0 3px 4px rgb(0 0 0 / 20%);
 }
-.leave-summary-section > h2 { text-align: center; }
+.leave-summary-section > h2 {
+  text-align: center;
+}
 .leave-summary-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -81,8 +85,12 @@
   margin-bottom: var(--leave-space-4);
 }
 .leave-records-toolbar h2,
-.leave-records-toolbar p { margin: 0; }
-.leave-records-toolbar .leave-apply-button { justify-self: start; }
+.leave-records-toolbar p {
+  margin: 0;
+}
+.leave-records-toolbar .leave-apply-button {
+  justify-self: start;
+}
 .leave-page-content .leave-apply-button {
   border-color: #333;
   background: #9fc5fa;
@@ -102,7 +110,10 @@
   font-weight: 700;
   line-height: 1.25;
 }
-.leave-page-content button:disabled { cursor: wait; opacity: 0.6; }
+.leave-page-content button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
 .admin-leave-page .leave-page-content .table-container,
 .admin-leave-page .leave-page-content section > div:has(> table) {
   max-width: 100%;
@@ -127,20 +138,30 @@
   text-align: left;
   white-space: nowrap;
 }
-.admin-leave-page .leave-page-content th { color: var(--color-text-muted); font-weight: 500; }
+.admin-leave-page .leave-page-content th {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
 .admin-leave-page .leave-page-content td:last-child {
   display: flex;
   align-items: center;
   gap: var(--leave-space-2);
 }
 .leave-page-content td:last-child button:first-child {
-  color: #fff; border: 0; background: #5639c6; box-shadow: 0 5px 12px rgb(47 28 128 / 40%);
+  color: #fff;
+  border: 0;
+  background: #5639c6;
+  box-shadow: 0 5px 12px rgb(47 28 128 / 40%);
 }
 .leave-page-content td:last-child button:last-child {
-  color: #fff; border: 0; background: #dd194f; box-shadow: 0 5px 12px rgb(150 18 55 / 35%);
+  color: #fff;
+  border: 0;
+  background: #dd194f;
+  box-shadow: 0 5px 12px rgb(150 18 55 / 35%);
 }
 .leave-page-content section:last-of-type td:last-child button:first-child {
-  background: #36c86c; box-shadow: 0 5px 12px rgb(20 133 65 / 35%);
+  background: #36c86c;
+  box-shadow: 0 5px 12px rgb(20 133 65 / 35%);
 }
 .leave-dialog,
 .calendar-dialog {
@@ -158,21 +179,53 @@
   background: #fff;
 }
 .leave-dialog::backdrop,
-.calendar-dialog::backdrop { background: rgb(33 23 68 / 28%); }
-.leave-dialog h2 { margin: 0 0 var(--leave-space-5); text-align: center; }
-.leave-dialog form { display: grid; gap: var(--leave-space-3); }
-.leave-dialog label { font-weight: 700; }
+.calendar-dialog::backdrop {
+  background: rgb(33 23 68 / 28%);
+}
+.leave-dialog h2 {
+  margin: 0 0 var(--leave-space-5);
+  text-align: center;
+}
+.leave-dialog form {
+  display: grid;
+  gap: var(--leave-space-3);
+}
+.leave-dialog label {
+  font-weight: 700;
+}
 .leave-dialog select,
 .leave-dialog input,
 .leave-dialog textarea {
-  width: 100%; min-height: 48px; padding: var(--leave-space-3); border: 1px solid var(--leave-border); background: #fff; font: inherit;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--leave-space-3);
+  border: 1px solid var(--leave-border);
+  background: #fff;
+  font: inherit;
 }
-.leave-dialog textarea { min-height: 140px; resize: vertical; }
-.leave-dialog .dialog-actions { display: flex; justify-content: center; gap: var(--leave-space-5); margin-top: var(--leave-space-4); }
+.leave-dialog textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+.leave-dialog .dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--leave-space-5);
+  margin-top: var(--leave-space-4);
+}
 .leave-dialog .dialog-actions button:first-child,
-.leave-confirm-actions button:last-child { color: #313e77; border: 1px solid #313e77; background: #fff; box-shadow: none; }
+.leave-confirm-actions button:last-child {
+  color: #313e77;
+  border: 1px solid #313e77;
+  background: #fff;
+  box-shadow: none;
+}
 .leave-dialog .dialog-actions button:last-child,
-.leave-confirm-actions button:first-child { border-color: #f2da32; background: #ffe73f; box-shadow: none; }
+.leave-confirm-actions button:first-child {
+  border-color: #f2da32;
+  background: #ffe73f;
+  box-shadow: none;
+}
 .leave-dialog--confirm {
   width: min(446px, calc(100vw - 32px));
   padding: var(--leave-space-5) 0 var(--leave-space-5);
@@ -207,23 +260,110 @@
   padding-inline: var(--leave-space-5);
   text-align: center;
 }
-.leave-confirm-actions button { width: min(344px, 100%); min-height: 54px; }
-.leave-confirm-actions span { font-style: italic; }
-.calendar-dialog { width: min(720px, calc(100vw - 32px)); }
+.leave-confirm-actions button {
+  width: min(344px, 100%);
+  min-height: 54px;
+}
+.leave-confirm-actions span {
+  font-style: italic;
+}
+.calendar-dialog {
+  width: min(960px, calc(100vw - 32px));
+  padding: clamp(20px, 3vw, 48px);
+  border-radius: 10px;
+}
+.calendar-header {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+.calendar-dialog .calendar-header h2 {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 38px);
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 8px;
+}
+.admin-leave-page .calendar-month-button {
+  width: 64px;
+  min-height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #585d63;
+  background: #f1f1f4;
+  box-shadow: none;
+  font-size: 38px;
+  font-weight: 400;
+}
+.admin-leave-page .calendar-month-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--leave-space-2);
+  gap: 10px;
+}
+.calendar-weekday {
+  padding: 0 4px 8px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
 }
 .calendar-cell {
-  min-height: 48px;
-  padding: var(--space-1-5);
+  position: relative;
+  min-height: 88px;
+  padding: 10px;
   border: 0;
   border-radius: var(--radius-control);
   background: #f4f4f7;
+  font-size: 18px;
 }
-.calendar-holiday { color: #c62828; font-weight: 700; }
-.calendar-description { font-size: 0.75rem; line-height: 1.3; }
+.calendar-holiday {
+  color: #c62828;
+  font-weight: 700;
+}
+.calendar-description {
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+.calendar-today {
+  outline: 3px solid #303f9f;
+  outline-offset: -3px;
+  background: #eef1ff;
+}
+.calendar-today-label {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #303f9f;
+  font-size: 12px;
+  font-weight: 700;
+}
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 32px 0 20px;
+  color: #454b54;
+  font-size: 18px;
+}
+.calendar-legend span {
+  width: 14px;
+  height: 14px;
+  background: #ff7b2c;
+}
+.admin-leave-page .calendar-close-button {
+  display: block;
+  margin-right: auto;
+}
 .admin-leave-page .error {
   padding: 10px 12px;
   border: 1px solid #d92d20;
@@ -232,12 +372,52 @@
   background: #fff1f0;
 }
 @media (max-width: 680px) {
-  .leave-page-content { width: min(100% - 24px, 1205px); }
-  .leave-summary { grid-template-columns: minmax(0, 1fr); }
+  .leave-page-content {
+    width: min(100% - 24px, 1205px);
+  }
+  .leave-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .leave-summary-row,
-  .leave-records-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .leave-records-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calendar-dialog {
+    padding: 18px;
+  }
+  .calendar-header {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+  .admin-leave-page .calendar-month-button {
+    width: 44px;
+    min-height: 44px;
+    font-size: 28px;
+  }
+  .calendar-grid {
+    gap: 5px;
+  }
+  .calendar-cell {
+    min-height: 58px;
+    padding: 6px;
+    font-size: 15px;
+  }
+  .calendar-weekday {
+    font-size: 15px;
+    text-align: center;
+  }
+  .calendar-today-label {
+    position: static;
+    display: block;
+    width: fit-content;
+    margin-top: 4px;
+    padding: 1px 4px;
+    font-size: 10px;
+  }
 }
 
 @media (min-width: 681px) and (max-width: 1100px) {
-  .leave-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leave-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

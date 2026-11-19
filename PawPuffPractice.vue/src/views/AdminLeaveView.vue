@@ -432,22 +432,69 @@ async function loadLeaveCalendar(year) {
   return calendar //手上已經有這份資料，不必先存進快取，再從快取-> calendarsByYear.value[2027]拿出來回傳。
 }
 
-// 現在行事曆只顯示2027年1月
-const calendarDays = ref([]) //「某一年的每日清單」
+// 行事曆預設顯示使用者電腦所在的「今天月份」，因此今天一定會出現在這一頁。
+const calendarDate = ref(new Date())
+const calendarDays = ref([]) //目前月份的每日清單
 const calendarMessage = ref('')
+const calendarMinDate = new Date(2026, 0, 1)
+const calendarMaxDate = new Date(2027, 11, 1)
 
-async function openCalendarDialog() {
-  calendarDialog.value.showModal()
+// getMonth() 從 0 開始，所以顯示月份時要 + 1。
+const calendarTitle = computed(
+  () => `${calendarDate.value.getFullYear()}年${calendarDate.value.getMonth() + 1}月`,
+)
+
+// 月曆第一天前面要留幾格，例如星期五就是 5 格。
+const calendarLeadingBlanks = computed(() =>
+  new Date(calendarDate.value.getFullYear(), calendarDate.value.getMonth(), 1).getDay(),
+)
+
+function isToday(dateValue) {
+  const today = new Date()
+  const todayKey = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('')
+
+  return dateValue === todayKey
+}
+
+const canGoToPreviousMonth = computed(() => calendarDate.value > calendarMinDate)
+const canGoToNextMonth = computed(() => calendarDate.value < calendarMaxDate)
+
+// 依 calendarDate 載入該月份。切換跨年月份時也會自動改查新的年度 CSV。
+async function loadDisplayedCalendarMonth() {
   calendarMessage.value = '載入中...'
 
   try {
-    const calendar = await loadLeaveCalendar(2027)
-    calendarDays.value = calendar.days.filter((day) => day.date.startsWith('202701'))
+    const year = calendarDate.value.getFullYear()
+    const month = String(calendarDate.value.getMonth() + 1).padStart(2, '0')
+    const calendar = await loadLeaveCalendar(year)
+    calendarDays.value = calendar.days.filter((day) => day.date.startsWith(`${year}${month}`))
     calendarMessage.value = ''
   } catch (error) {
     calendarMessage.value = '無法載入行事曆' //讓使用者在日曆彈窗看到「無法載入行事曆」
-    console.error('載入2027年行事曆失敗：', error) //讓你在瀏覽器 Console 看實際錯誤，例如 API 回了 404 或連不上後端。它不會把細節顯示在彈窗裡
+    console.error(`載入${calendarTitle.value}行事曆失敗：`, error) //讓你在瀏覽器 Console 看實際錯誤，例如 API 回了 404 或連不上後端。它不會把細節顯示在彈窗裡
   }
+}
+
+async function openCalendarDialog() {
+  calendarDialog.value.showModal()
+  await loadDisplayedCalendarMonth()
+}
+
+async function changeCalendarMonth(offset) {
+  const targetDate = new Date(
+    calendarDate.value.getFullYear(),
+    calendarDate.value.getMonth() + offset,
+    1,
+  )
+
+  if (targetDate < calendarMinDate || targetDate > calendarMaxDate) return
+
+  calendarDate.value = targetDate
+  await loadDisplayedCalendarMonth()
 }
 
 // 原本是「每天都套用班別時段，再扣掉午休」 calculateLeaveHours()
@@ -1114,28 +1161,64 @@ function getClassTypeText(classType) {
         <!-- 行事曆彈窗 -->
         <!-- ref="calendarDialog" 把這個 <dialog> 接到上面的變數 -->
         <dialog ref="calendarDialog" class="calendar-dialog">
-          <h2>2027年1月</h2>
+          <header class="calendar-header">
+            <button
+              class="calendar-month-button"
+              type="button"
+              aria-label="上一個月"
+              :disabled="!canGoToPreviousMonth || calendarMessage === '載入中...'"
+              @click="changeCalendarMonth(-1)"
+            >
+              ←
+            </button>
+            <h2>{{ calendarTitle }}</h2>
+            <button
+              class="calendar-month-button"
+              type="button"
+              aria-label="下一個月"
+              :disabled="!canGoToNextMonth || calendarMessage === '載入中...'"
+              @click="changeCalendarMonth(1)"
+            >
+              →
+            </button>
+          </header>
 
           <p v-if="calendarMessage">{{ calendarMessage }}</p>
 
           <div v-else class="calendar-grid">
-            <span v-for="weekday in ['日', '一', '二', '三', '四', '五', '六']" :key="weekday">
+            <span
+              v-for="weekday in ['日', '一', '二', '三', '四', '五', '六']"
+              :key="weekday"
+              class="calendar-weekday"
+            >
               {{ weekday }}</span
             >
-            <!-- 1 月 1 日是星期五，日到四先留五格 -->
+            <!-- 依目前月份第一天是星期幾，自動補上前面的空格。 -->
             <!-- aria-hidden="true" 是告訴螢幕閱讀器「不用讀這個元素」。 它不會讓元素從畫面上消失 -->
-            <span v-for="blank in 5" :key="blank" aria-hidden="true"></span>
+            <span
+              v-for="blank in calendarLeadingBlanks"
+              :key="blank"
+              class="calendar-blank"
+              aria-hidden="true"
+            ></span>
 
             <!-- 每一天都取出來 -->
             <!-- 以20270101為例, day.date="20270101" 
         , 取最後兩個字元 .slice(-2)="01" 
         Number("01")= 1  => 只顯示日期-->
-            <div v-for="day in calendarDays" :key="day.date" class="calendar-cell">
+            <div
+              v-for="day in calendarDays"
+              :key="day.date"
+              class="calendar-cell"
+              :class="{ 'calendar-today': isToday(day.date) }"
+              :aria-current="isToday(day.date) ? 'date' : undefined"
+            >
               <!-- :class 決定要不要套樣式  -->
               <!-- 'calendar-holiday' 自訂CSS類別 , day.isHoliday 是條件-->
               <span :class="{ 'calendar-holiday': day.isHoliday }">{{
                 Number(day.date.slice(-2))
               }}</span>
+              <span v-if="isToday(day.date)" class="calendar-today-label">今天</span>
 
               <!-- 國定假日名稱 -->
               <div v-if="day.isHoliday && day.description" class="calendar-description">
@@ -1151,7 +1234,10 @@ function getClassTypeText(classType) {
             </div>
           </div>
 
-          <button type="button" @click="calendarDialog.close()">關閉</button>
+          <div class="calendar-legend"><span aria-hidden="true"></span>今天</div>
+          <button class="calendar-close-button" type="button" @click="calendarDialog.close()">
+            關閉
+          </button>
         </dialog>
 
         <!-- ----xxx年各假別請假時數---- -->
@@ -1567,4 +1653,3 @@ function getClassTypeText(classType) {
     </main>
   </div>
 </template>
-

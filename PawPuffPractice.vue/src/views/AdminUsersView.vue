@@ -582,10 +582,7 @@ const totalPages = computed(() => {
 })
 const memberPageNumbers = computed(() => {
   const pageCount = Math.min(7, totalPages.value)
-  const firstPage = Math.max(
-    1,
-    Math.min(currentPage.value - 3, totalPages.value - pageCount + 1),
-  )
+  const firstPage = Math.max(1, Math.min(currentPage.value - 3, totalPages.value - pageCount + 1))
 
   return Array.from({ length: pageCount }, (_, index) => firstPage + index)
 })
@@ -1112,10 +1109,13 @@ async function confirmSuspendMember() {
   // 假設：statusText = getStatusTest(2)
   // statusText = '會員自行申請停用'
   const statusText = getStatusText(newStatus)
+  const isEnabling = newStatus === 1
 
   // 這個確認已經由目前開啟的 Figma 樣式 dialog 完成，
   // 不再另外呼叫 window.confirm()，避免跳出作業系統原生灰色視窗。
-  actionMessage.value = `正在停用會員「${member.account}」（${statusText}）`
+  actionMessage.value = isEnabling
+    ? `正在啟用會員「${member.account}」`
+    : `正在停用會員「${member.account}」（${statusText}）`
 
   // 使用者按「確認停用」後，才呼叫後端 API。
   // succeeded = true
@@ -1135,15 +1135,13 @@ async function confirmSuspendMember() {
   // 這樣後端即使將第一個停用狀態改成其他數字，前端也不用跟著修改。
 }
 
-// 恢復會員
-async function enableMember(member) {
-  const confirmed = window.confirm(`確定要恢復會員「${member.account}」的帳號嗎？`)
-
-  if (!confirmed) {
-    return
-  }
-
-  await updateMemberStatus(member, 1)
+// 恢復會員：只先準備資料並開啟專案自己的確認視窗。
+// 真正呼叫 API 會等使用者在彈窗按「確定」後，由 confirmSuspendMember() 執行。
+function enableMember(member) {
+  selectedMember.value = member
+  selectedStatus.value = 1
+  actionMessage.value = ''
+  actionErrorMessage.value = ''
 }
 
 // 第五步：建立載入函式
@@ -1663,27 +1661,28 @@ const isAnyDialogOpen = computed(
 watch(
   isAnyDialogOpen,
   async (isOpen, wasOpen) => {
-  if (isOpen) {
-    await nextTick()
-    const dialog = accountPage.value?.querySelector('.account-modal-backdrop')
-    if (dialog instanceof HTMLDialogElement && !dialog.open) {
-      dialog.showModal()
+    if (isOpen) {
+      await nextTick()
+      const dialog = accountPage.value?.querySelector('.account-modal-backdrop')
+      if (dialog instanceof HTMLDialogElement && !dialog.open) {
+        dialog.showModal()
+      }
+    } else if (wasOpen) {
+      const rowAction = lastFocusedContext.value?.isConnected
+        ? lastFocusedContext.value.querySelector('button:not(:disabled)')
+        : null
+      const fallbackAction = accountPage.value?.querySelector(
+        '.account-table tbody tr button:not(:disabled)',
+      )
+      const trigger = lastFocusedElement.value
+      const focusTarget =
+        trigger instanceof HTMLElement && trigger.isConnected
+          ? trigger
+          : (rowAction ?? fallbackAction ?? accountPage.value?.querySelector('#account-main'))
+      focusTarget?.focus()
+      lastFocusedElement.value = null
+      lastFocusedContext.value = null
     }
-  } else if (wasOpen) {
-    const rowAction = lastFocusedContext.value?.isConnected
-      ? lastFocusedContext.value.querySelector('button:not(:disabled)')
-      : null
-    const fallbackAction = accountPage.value?.querySelector(
-      '.account-table tbody tr button:not(:disabled)',
-    )
-    const trigger = lastFocusedElement.value
-    const focusTarget = trigger instanceof HTMLElement && trigger.isConnected
-      ? trigger
-      : (rowAction ?? fallbackAction ?? accountPage.value?.querySelector('#account-main'))
-    focusTarget?.focus()
-    lastFocusedElement.value = null
-    lastFocusedContext.value = null
-  }
   },
   { flush: 'post' },
 )
@@ -1912,7 +1911,9 @@ onMounted(() => {
           {{ actionMessage || (isLoading ? '帳號資料載入中...' : '') }}
         </p>
         <p class="visually-hidden" role="alert" aria-live="assertive" aria-atomic="true">
-          {{ actionErrorMessage || createAdminErrorMessage || editAdminErrorMessage || errorMessage }}
+          {{
+            actionErrorMessage || createAdminErrorMessage || editAdminErrorMessage || errorMessage
+          }}
         </p>
         <p class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
           {{ resultAnnouncement }}
@@ -1949,7 +1950,7 @@ onMounted(() => {
               <div class="account-control">
                 <label for="member-search">搜尋會員</label>
 
-        <!-- v-model.trim 是什麼？
+                <!-- v-model.trim 是什麼？
             v-model.trim="searchKeyword"
             v-model 把輸入框文字保存進：searchKeyword.value
             .trim 會移除文字前後的空白 -->
@@ -1992,103 +1993,129 @@ onMounted(() => {
                 顯示 {{ filteredMembers.length }} 位，共 {{ members.length }} 位會員
               </p>
             </div>
-        <!-- 例如總共有 10 位會員，篩選後剩 3 位：
+            <!-- 例如總共有 10 位會員，篩選後剩 3 位：
             顯示 3 位，共 10 位會員-->
 
-        <!-- 完整會員清單是空的 → 顯示「目前沒有一般會員」 -->
-        <p v-if="members.length === 0">目前沒有一般會員</p>
-        <!-- 完整清單有會員，但篩選結果是空的 → 顯示「目前沒有符合篩選條件的會員」 -->
-        <p v-else-if="filteredMembers.length === 0">目前沒有符合篩選條件的會員</p>
+            <!-- 完整會員清單是空的 → 顯示「目前沒有一般會員」 -->
+            <p v-if="members.length === 0">目前沒有一般會員</p>
+            <!-- 完整清單有會員，但篩選結果是空的 → 顯示「目前沒有符合篩選條件的會員」 -->
+            <p v-else-if="filteredMembers.length === 0">目前沒有符合篩選條件的會員</p>
 
-        <div class="account-sort-controls">
-          <label for="sort-field"> 排序欄位 </label>
-          <select id="sort-field" v-model="sortField">
-            <option value="id">會員編號</option>
-            <option value="account">帳號</option>
-            <option value="pointBalance">點數</option>
-            <option value="createdAt">註冊時間</option>
-          </select>
+            <div class="account-sort-controls">
+              <label for="sort-field"> 排序欄位 </label>
+              <select id="sort-field" v-model="sortField">
+                <option value="id">會員編號</option>
+                <option value="account">帳號</option>
+                <option value="pointBalance">點數</option>
+                <option value="createdAt">註冊時間</option>
+              </select>
 
-          <label for="sort-direction"> 排序方向 </label>
-          <select id="sort-direction" v-model="sortDirection">
-            <option value="asc">由小到大</option>
-            <option value="desc">由大到小</option>
-          </select>
-        </div>
+              <label for="sort-direction"> 排序方向 </label>
+              <select id="sort-direction" v-model="sortDirection">
+                <option value="asc">由小到大</option>
+                <option value="desc">由大到小</option>
+              </select>
+            </div>
 
-        <!-- members.length > 0 -->
-        <!-- filteredMembers.length > 0 -->
-        <!-- 加入排序選單後, 
+            <!-- members.length > 0 -->
+            <!-- filteredMembers.length > 0 -->
+            <!-- 加入排序選單後,
         <div>排序選單</div>
         Vue 會疑惑：
         <table v-else>
         否則什麼？
         前一個元素是普通 div，沒有 if！ => 因此報錯 -->
 
-        <!-- thead 表頭
+            <!-- thead 表頭
                 tr 表格的一橫列
                 th 標題格
 
                 tbody 資料
                 td 資料格 -->
-        <div
-          v-if="filteredMembers.length > 0"
-          class="account-table-scroll"
-          tabindex="0"
-          role="region"
-          aria-label="一般會員清單，可左右捲動"
-        >
-          <table class="account-table">
-            <caption class="visually-hidden">一般會員帳號清單</caption>
-            <thead>
-            <tr>
-              <th
-                scope="col"
-                :aria-sort="sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined"
-              >編號</th>
-              <th
-                scope="col"
-                :aria-sort="sortField === 'account' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined"
-              >帳號</th>
-              <th scope="col">暱稱</th>
-              <th scope="col">Email</th>
-              <th
-                scope="col"
-                :aria-sort="sortField === 'pointBalance' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined"
-              >點數</th>
-              <th scope="col">狀態</th>
-              <th scope="col">角色</th>
-              <th scope="col">操作</th>
-            </tr>
-            </thead>
+            <div
+              v-if="filteredMembers.length > 0"
+              class="account-table-scroll"
+              tabindex="0"
+              role="region"
+              aria-label="一般會員清單，可左右捲動"
+            >
+              <table class="account-table">
+                <caption class="visually-hidden">
+                  一般會員帳號清單
+                </caption>
+                <thead>
+                  <tr>
+                    <th
+                      scope="col"
+                      :aria-sort="
+                        sortField === 'id'
+                          ? sortDirection === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : undefined
+                      "
+                    >
+                      編號
+                    </th>
+                    <th
+                      scope="col"
+                      :aria-sort="
+                        sortField === 'account'
+                          ? sortDirection === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : undefined
+                      "
+                    >
+                      帳號
+                    </th>
+                    <th scope="col">暱稱</th>
+                    <th scope="col">Email</th>
+                    <th
+                      scope="col"
+                      :aria-sort="
+                        sortField === 'pointBalance'
+                          ? sortDirection === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : undefined
+                      "
+                    >
+                      點數
+                    </th>
+                    <th scope="col">狀態</th>
+                    <th scope="col">角色</th>
+                    <th scope="col">操作</th>
+                  </tr>
+                </thead>
 
-            <tbody>
-            <!-- 把members裡面的東西一個、一個拿出來 
+                <tbody>
+                  <!-- 把members裡面的東西一個、一個拿出來
                     每拿一個出來就建立一次 <tr> -->
-            <!-- :key 告訴Vue 這一個 <tr> 是哪一個會員的 -->
-            <!-- v-for 在適當情況下提供唯一 key，讓更新、重排、刪除時可以正確追蹤每一項 -->
-            <tr v-for="member in paginatedMembers" :key="member.id">
-              <th scope="row">{{ member.id }}</th>
-              <td>{{ member.account }}</td>
-              <td>{{ member.nickname }}</td>
-              <td>{{ member.email }}</td>
-              <td>{{ member.pointBalance }}</td>
-              <td>{{ getStatusText(member.status) }}</td>
-              <td>{{ member.role }}</td>
+                  <!-- :key 告訴Vue 這一個 <tr> 是哪一個會員的 -->
+                  <!-- v-for 在適當情況下提供唯一 key，讓更新、重排、刪除時可以正確追蹤每一項 -->
+                  <tr v-for="member in paginatedMembers" :key="member.id">
+                    <th scope="row">{{ member.id }}</th>
+                    <td>{{ member.account }}</td>
+                    <td>{{ member.nickname }}</td>
+                    <td>{{ member.email }}</td>
+                    <td>{{ member.pointBalance }}</td>
+                    <td>{{ getStatusText(member.status) }}</td>
+                    <td>{{ member.role }}</td>
 
-              <!-- 
+                    <!--
                         假設：
                         {
                         id: 52,
                         account: 'ho1999',
                         status: 1
                         } -->
-              <!-- 假設正在更新會員 52：updatingMemberId.value = 52 -->
-              <!-- 目前這一列也是會員 52：
+                    <!-- 假設正在更新會員 52：updatingMemberId.value = 52 -->
+                    <!-- 目前這一列也是會員 52：
                         member.id = 52 -->
-              <!-- @click 是 v-on:click的縮寫 
+                    <!-- @click 是 v-on:click的縮寫
                         意思是使用者點擊「停用」按鈕時，把這一列的會員資料放進 selectedMember。-->
-              <!-- 例如點擊會員 52 的停用按鈕之前：
+                    <!-- 例如點擊會員 52 的停用按鈕之前：
                         selectedMember.value = null
                         點擊之後：
                         selectedMember.value = 
@@ -2097,9 +2124,9 @@ onMounted(() => {
                         account: 'ho1999',
                         status: 1
                         } -->
-              <td>
-                <!-- 會員目前的狀態等於1，才顯示這顆「停用」按鈕 -->
-                <!-- 按下「停用」
+                    <td>
+                      <!-- 會員目前的狀態等於1，才顯示這顆「停用」按鈕 -->
+                      <!-- 按下「停用」
                         → selectedMember 保存這位會員
                         → 顯示停用確認區域
                         → 選擇停用原因
@@ -2109,173 +2136,208 @@ onMounted(() => {
                         → 呼叫後端 API
                         → 修改 MySQL -->
 
-                <button
-                  type="button"
-                  :aria-label="`查看會員 ${member.account}`"
-                  @click="selectedDetailMember = member"
-                >
-                  查看
-                </button>
+                      <button
+                        type="button"
+                        :aria-label="`查看會員 ${member.account}`"
+                        @click="selectedDetailMember = member"
+                      >
+                        查看
+                      </button>
 
-                <!-- 正常會員：先選取這位會員 -->
-                <button
-                  v-if="member.status === 1"
-                  type="button"
-                  :disabled="updatingMemberId === member.id"
-                  :aria-label="`停用會員 ${member.account}`"
-                  @click="openSuspendMember(member)"
-                >
-                  停用
-                </button>
-                <!-- else 會員目前的狀態!=1，才顯示這顆「啟用」按鈕 -->
-                <!-- 點擊「啟用」時，把目前這一列的會員傳給 enableMember()  -->
-                <!-- 假設正在更新會員 52： 
+                      <!-- 正常會員：先選取這位會員 -->
+                      <button
+                        v-if="member.status === 1"
+                        type="button"
+                        :disabled="updatingMemberId === member.id"
+                        :aria-label="`停用會員 ${member.account}`"
+                        @click="openSuspendMember(member)"
+                      >
+                        停用
+                      </button>
+                      <!-- else 會員目前的狀態!=1，才顯示這顆「啟用」按鈕 -->
+                      <!-- 點擊「啟用」時，把目前這一列的會員傳給 enableMember()  -->
+                      <!-- 假設正在更新會員 52：
                         updatingMemberId = 52
                         member.id = 52
                         true  => 顯示：處理中...
                         false => 顯示：啟用 -->
 
-                <!-- 已停用會員：恢復帳號 -->
-                <button
-                  v-else
-                  type="button"
-                  :disabled="updatingMemberId === member.id"
-                  :aria-label="`${updatingMemberId === member.id ? '處理中' : '啟用'}會員 ${member.account}`"
-                  @click="enableMember(member)"
-                >
-                  {{ updatingMemberId === member.id ? '處理中...' : '啟用' }}
-                </button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 會員詳細資料 -->
-        <dialog
-          v-if="selectedDetailMember"
-          class="account-modal-backdrop"
-          aria-labelledby="member-detail-title"
-          @cancel.prevent="handleDialogCancel"
-          @click.self="handleDialogBackdropClick"
-        >
-          <section class="account-modal-window account-modal-window--member-detail">
-            <h2 id="member-detail-title">會員詳細資料</h2>
-            <div
-              class="account-detail-scroll"
-              tabindex="0"
-              role="region"
-              aria-label="會員詳細資料表，可左右捲動"
-            >
-              <table class="account-detail-table">
-                <caption class="visually-hidden">會員詳細資料</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">編號</th>
-                    <th scope="col">帳號</th>
-                    <th scope="col">暱稱</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">電話</th>
-                    <th scope="col">點數</th>
-                    <th scope="col">狀態</th>
-                    <th scope="col">角色</th>
-                    <th scope="col">建立時間</th>
-                    <th scope="col">最後登入</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{{ selectedDetailMember.id }}</td>
-                    <td>{{ selectedDetailMember.account }}</td>
-                    <td>{{ selectedDetailMember.nickname }}</td>
-                    <td>{{ selectedDetailMember.email }}</td>
-                    <td>{{ selectedDetailMember.phone || '未填寫' }}</td>
-                    <td>{{ selectedDetailMember.pointBalance }}</td>
-                    <td>{{ getStatusText(selectedDetailMember.status) }}</td>
-                    <td>{{ selectedDetailMember.role }}</td>
-                    <td>
-                      {{
-                        selectedDetailMember.createdAt
-                          ? formatDateTime(selectedDetailMember.createdAt)
-                          : '無建立時間'
-                      }}
-                    </td>
-                    <td>
-                      {{
-                        selectedDetailMember.lastLoginAt
-                          ? formatDateTime(selectedDetailMember.lastLoginAt)
-                          : '尚未登入'
-                      }}
+                      <!-- 已停用會員：恢復帳號 -->
+                      <button
+                        v-else
+                        type="button"
+                        :disabled="updatingMemberId === member.id"
+                        :aria-label="`${updatingMemberId === member.id ? '處理中' : '啟用'}會員 ${member.account}`"
+                        @click="enableMember(member)"
+                      >
+                        {{ updatingMemberId === member.id ? '處理中...' : '啟用' }}
+                      </button>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <button
-              class="comic-button account-button-secondary"
-              type="button"
-              @click="selectedDetailMember = null"
+
+            <!-- 會員詳細資料 -->
+            <dialog
+              v-if="selectedDetailMember"
+              class="account-modal-backdrop"
+              aria-labelledby="member-detail-title"
+              @cancel.prevent="handleDialogCancel"
+              @click.self="handleDialogBackdropClick"
             >
-              關閉
-            </button>
-          </section>
-        </dialog>
+              <section class="account-modal-window account-modal-window--member-detail">
+                <h2 id="member-detail-title">會員詳細資料</h2>
+                <div
+                  class="account-detail-scroll"
+                  tabindex="0"
+                  role="region"
+                  aria-label="會員詳細資料表，可左右捲動"
+                >
+                  <table class="account-detail-table">
+                    <caption class="visually-hidden">
+                      會員詳細資料
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">編號</th>
+                        <th scope="col">帳號</th>
+                        <th scope="col">暱稱</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">電話</th>
+                        <th scope="col">點數</th>
+                        <th scope="col">狀態</th>
+                        <th scope="col">角色</th>
+                        <th scope="col">建立時間</th>
+                        <th scope="col">最後登入</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{{ selectedDetailMember.id }}</td>
+                        <td>{{ selectedDetailMember.account }}</td>
+                        <td>{{ selectedDetailMember.nickname }}</td>
+                        <td>{{ selectedDetailMember.email }}</td>
+                        <td>{{ selectedDetailMember.phone || '未填寫' }}</td>
+                        <td>{{ selectedDetailMember.pointBalance }}</td>
+                        <td>{{ getStatusText(selectedDetailMember.status) }}</td>
+                        <td>{{ selectedDetailMember.role }}</td>
+                        <td>
+                          {{
+                            selectedDetailMember.createdAt
+                              ? formatDateTime(selectedDetailMember.createdAt)
+                              : '無建立時間'
+                          }}
+                        </td>
+                        <td>
+                          {{
+                            selectedDetailMember.lastLoginAt
+                              ? formatDateTime(selectedDetailMember.lastLoginAt)
+                              : '尚未登入'
+                          }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  class="comic-button account-button-secondary"
+                  type="button"
+                  @click="selectedDetailMember = null"
+                >
+                  關閉
+                </button>
+              </section>
+            </dialog>
 
-        <!-- 分頁控制區 -->
-        <nav v-if="filteredMembers.length > 0" class="account-pagination" aria-label="會員清單分頁">
-          <button
-            class="account-page-arrow"
-            type="button"
-            aria-label="上一頁"
-            :disabled="currentPage === 1"
-            @click="setMemberPage(currentPage - 1)"
-          >
-            <img :src="pagePreviousIcon" alt="" aria-hidden="true" />
-          </button>
-          <ol>
-            <li v-for="page in memberPageNumbers" :key="page">
+            <!-- 分頁控制區 -->
+            <nav
+              v-if="filteredMembers.length > 0"
+              class="account-pagination"
+              aria-label="會員清單分頁"
+            >
               <button
+                class="account-page-arrow"
                 type="button"
-                :aria-label="`第 ${page} 頁`"
-                :aria-current="page === currentPage ? 'page' : undefined"
-                :class="{ 'is-current': page === currentPage }"
-                @click="setMemberPage(page)"
+                aria-label="上一頁"
+                :disabled="currentPage === 1"
+                @click="setMemberPage(currentPage - 1)"
               >
-                <img v-if="page === currentPage" :src="pageCurrentIcon" alt="" aria-hidden="true" />
-                <span>{{ page }}</span>
+                <img :src="pagePreviousIcon" alt="" aria-hidden="true" />
               </button>
-            </li>
-          </ol>
-          <button
-            class="account-page-arrow"
-            type="button"
-            aria-label="下一頁"
-            :disabled="currentPage >= totalPages"
-            @click="setMemberPage(currentPage + 1)"
-          >
-            <img :src="pageNextIcon" alt="" aria-hidden="true" />
-          </button>
-          <span class="visually-hidden">第 {{ currentPage }} 頁，共 {{ totalPages }} 頁</span>
-        </nav>
+              <ol>
+                <li v-for="page in memberPageNumbers" :key="page">
+                  <button
+                    type="button"
+                    :aria-label="`第 ${page} 頁`"
+                    :aria-current="page === currentPage ? 'page' : undefined"
+                    :class="{ 'is-current': page === currentPage }"
+                    @click="setMemberPage(page)"
+                  >
+                    <img
+                      v-if="page === currentPage"
+                      :src="pageCurrentIcon"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    <span>{{ page }}</span>
+                  </button>
+                </li>
+              </ol>
+              <button
+                class="account-page-arrow"
+                type="button"
+                aria-label="下一頁"
+                :disabled="currentPage >= totalPages"
+                @click="setMemberPage(currentPage + 1)"
+              >
+                <img :src="pageNextIcon" alt="" aria-hidden="true" />
+              </button>
+              <span class="visually-hidden">第 {{ currentPage }} 頁，共 {{ totalPages }} 頁</span>
+            </nav>
 
-        <!-- 停用確認區域 -->
-        <dialog
-          v-if="selectedMember"
-          class="account-modal-backdrop"
-          aria-labelledby="suspend-member-title"
-          @cancel.prevent="handleDialogCancel"
-          @click.self="handleDialogBackdropClick"
-        >
-          <section class="account-modal-window account-modal-window--suspend-member">
-            <h2 id="suspend-member-title">停用會員</h2>
+            <!-- 停用確認區域 -->
+            <dialog
+              v-if="selectedMember"
+              class="account-modal-backdrop"
+              aria-labelledby="suspend-member-title"
+              @cancel.prevent="handleDialogCancel"
+              @click.self="handleDialogBackdropClick"
+            >
+              <section
+                class="account-modal-window account-modal-window--suspend-member"
+                :class="{ 'account-modal-window--confirm': selectedStatus === 1 }"
+              >
+                <h2 id="suspend-member-title">
+                  {{
+                    selectedStatus === 1
+                      ? `確定要啟用會員「${selectedMember.account}」嗎？`
+                      : '停用會員'
+                  }}
+                </h2>
+                <button
+                  v-if="selectedStatus === 1"
+                  class="account-dialog-close"
+                  type="button"
+                  aria-label="關閉"
+                  :disabled="updatingMemberId === selectedMember.id"
+                  @click="cancelSuspendMember"
+                >
+                  ×
+                </button>
 
-            <p class="account-modal-subtitle">會員：{{ selectedMember.account }}</p>
+                <p v-if="selectedStatus !== 1" class="account-modal-subtitle">
+                  會員：{{ selectedMember.account }}
+                </p>
 
-            <form @submit.prevent="confirmSuspendMember">
-              <div>
-                <label for="suspend-status">停用原因</label>
-          <!-- label的for對應select的id,所以自行取名稱-->
-          <!-- 為什麼使用 .number？
+                <form
+                  :class="{ 'account-confirm-form': selectedStatus === 1 }"
+                  @submit.prevent="confirmSuspendMember"
+                >
+                  <div v-if="selectedStatus !== 1">
+                    <label for="suspend-status">停用原因</label>
+                    <!-- label的for對應select的id,所以自行取名稱-->
+                    <!-- 為什麼使用 .number？
                 表單取得的值有時會是字串：'3'
                 但後端 DTO 的 Status 需要數字：
                 {
@@ -2284,25 +2346,25 @@ onMounted(() => {
                 加入 .number：
                 Vue 會嘗試把值轉成數字：'3' → 3 -->
 
-          <!-- v-model 是跟 JavaScript 變數綁定
+                    <!-- v-model 是跟 JavaScript 變數綁定
                 假設： const selectedStatus = ref(2) 
                 那：<select v-model="selectedStatus"> 
                 代表：
                 <select> 目前的值
                         ⇅
                 selectedStatus -->
-            <select
-              id="suspend-status"
-              class="account-select"
-              v-model.number="selectedStatus"
-              required
-              :aria-describedby="`suspend-status-help${actionErrorMessage ? ' suspend-status-error' : ''}`"
-              :aria-invalid="actionErrorMessage && !selectedStatus ? 'true' : undefined"
-            >
-            <option value="" disabled>請選擇停用原因</option>
-            <!-- key 是給 Vue 使用的，用來辨認每個由 v-for 產生的選項 -->
-            <!-- value 是表單選項真正代表的資料  -->
-            <!-- 如果只有 key、沒有 value
+                    <select
+                      id="suspend-status"
+                      class="account-select"
+                      v-model.number="selectedStatus"
+                      required
+                      :aria-describedby="`suspend-status-help${actionErrorMessage ? ' suspend-status-error' : ''}`"
+                      :aria-invalid="actionErrorMessage && !selectedStatus ? 'true' : undefined"
+                    >
+                      <option value="" disabled>請選擇停用原因</option>
+                      <!-- key 是給 Vue 使用的，用來辨認每個由 v-for 產生的選項 -->
+                      <!-- value 是表單選項真正代表的資料  -->
+                      <!-- 如果只有 key、沒有 value
                 => 瀏覽器通常會把顯示文字當作選項值
                 => selectedStatus.value = '違反使用規範'
                 可是後端需要：
@@ -2315,7 +2377,7 @@ onMounted(() => {
                 }
                 -->
 
-            <!-- statusOptions
+                      <!-- statusOptions
       ↓
 { value: 3, label: '違反使用規範' }
       ↓
@@ -2336,24 +2398,28 @@ v-model.number="selectedStatus"
       ↓
 selectedStatus.value = 3 -->
 
-            <option
-              v-for="option in memberDisabledOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-            </select>
-              </div>
+                      <option
+                        v-for="option in memberDisabledOptions"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </div>
 
-            <p id="suspend-status-help" class="account-field-help">
-              請選擇一項停用原因。
-            </p>
-            <p v-if="actionErrorMessage" id="suspend-status-error" class="error" role="alert">
-              {{ actionErrorMessage }}
-            </p>
+                  <p
+                    v-if="selectedStatus !== 1"
+                    id="suspend-status-help"
+                    class="account-field-help"
+                  >
+                    請選擇一項停用原因。
+                  </p>
+                  <p v-if="actionErrorMessage" id="suspend-status-error" class="error" role="alert">
+                    {{ actionErrorMessage }}
+                  </p>
 
-          <!-- v-for 建立每位會員的表格列
+                  <!-- v-for 建立每位會員的表格列
         ↓
 點擊 Bob 那一列的「停用」
         ↓
@@ -2368,61 +2434,79 @@ selectedMember.value 保存 Bob
 const member = selectedMember.value
         ↓
 取回 Bob -->
-            <div class="account-modal-actions">
-              <button
-                class="comic-button account-button-secondary"
-                type="button"
-                :disabled="updatingMemberId === selectedMember.id"
-                @click="cancelSuspendMember"
-              >
-                取消
-              </button>
-              <button
-                class="comic-button account-button-primary"
-                type="submit"
-                :disabled="updatingMemberId === selectedMember.id"
-              >
-                {{ updatingMemberId === selectedMember.id ? '處理中...' : '確認停用' }}
-              </button>
+                  <div v-if="selectedStatus === 1" class="account-confirm-actions">
+                    <button
+                      class="comic-button account-button-primary"
+                      type="submit"
+                      :disabled="updatingMemberId === selectedMember.id"
+                    >
+                      {{ updatingMemberId === selectedMember.id ? '處理中...' : '確定' }}
+                    </button>
+                    <span>or</span>
+                    <button
+                      class="comic-button account-button-secondary"
+                      type="button"
+                      :disabled="updatingMemberId === selectedMember.id"
+                      @click="cancelSuspendMember"
+                    >
+                      取消
+                    </button>
+                  </div>
+                  <div v-else class="account-modal-actions">
+                    <button
+                      class="comic-button account-button-secondary"
+                      type="button"
+                      :disabled="updatingMemberId === selectedMember.id"
+                      @click="cancelSuspendMember"
+                    >
+                      取消
+                    </button>
+                    <button
+                      class="comic-button account-button-primary"
+                      type="submit"
+                      :disabled="updatingMemberId === selectedMember.id"
+                    >
+                      {{ updatingMemberId === selectedMember.id ? '處理中...' : '確認停用' }}
+                    </button>
+                  </div>
+                </form>
+              </section>
+            </dialog>
+          </section>
+
+          <!-- ------------管理員------------ -->
+          <!-- 管理員篩選條件 -->
+          <section v-if="activeAccountTab === 'admins'" class="account-panel">
+            <div class="account-section-heading">
+              <h2>管理員</h2>
+
+              <p v-if="admins.length > 0" class="account-count">
+                顯示 {{ filteredAdmins.length }} 位，共 {{ admins.length }} 位管理員
+              </p>
             </div>
-            </form>
-          </section>
-        </dialog>
-          </section>
+            <div class="account-filter-row account-filter-row--admins">
+              <div class="account-control">
+                <label for="admin-search">搜尋管理員</label>
+                <input
+                  id="admin-search"
+                  v-model.trim="adminSearchKeyword"
+                  class="account-input"
+                  type="search"
+                  placeholder="請輸入帳號、暱稱、Email或電話"
+                />
+              </div>
 
-      <!-- ------------管理員------------ -->
-      <!-- 管理員篩選條件 -->
-      <section v-if="activeAccountTab === 'admins'" class="account-panel">
-        <div class="account-section-heading">
-          <h2>管理員</h2>
-
-          <p v-if="admins.length > 0" class="account-count">
-            顯示 {{ filteredAdmins.length }} 位，共 {{ admins.length }} 位管理員
-          </p>
-        </div>
-        <div class="account-filter-row account-filter-row--admins">
-          <div class="account-control">
-            <label for="admin-search">搜尋管理員</label>
-            <input
-              id="admin-search"
-              v-model.trim="adminSearchKeyword"
-              class="account-input"
-              type="search"
-              placeholder="請輸入帳號、暱稱、Email或電話"
-            />
-          </div>
-
-          <div class="account-control">
-            <label for="admin-status-filter">篩選管理員狀態</label>
-            <!-- :value="null" 
+              <div class="account-control">
+                <label for="admin-status-filter">篩選管理員狀態</label>
+                <!-- :value="null"
             => selectedAdminStatusFilter.value = null -->
-            <select
-              id="admin-status-filter"
-              v-model="selectedAdminStatusFilter"
-              class="account-select"
-            >
-              <option :value="null">全部管理員</option>
-              <!-- 假設：
+                <select
+                  id="admin-status-filter"
+                  v-model="selectedAdminStatusFilter"
+                  class="account-select"
+                >
+                  <option :value="null">全部管理員</option>
+                  <!-- 假設：
               option = { value: 8, label: '離職',}
               :key="option.value" → key 是 8 
               key：告訴 Vue「這個選項是誰」
@@ -2430,325 +2514,330 @@ const member = selectedMember.value
               :value="option.value" → 選取值是 8 
               value：告訴程式「使用者選了什麼」
               {{ option.label }}  → 畫面顯示「離職」-->
-              <option
-                v-for="option in adminStatusOptions"
-                :key="option.value"
-                :value="option.value"
+                  <option
+                    v-for="option in adminStatusOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+
+              <button
+                class="comic-button account-clear-button"
+                type="button"
+                @click="clearAdminFilters"
+                :disabled="adminSearchKeyword === '' && selectedAdminStatusFilter === null"
               >
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
+                清除篩選
+              </button>
 
-          <button
-            class="comic-button account-clear-button"
-            type="button"
-            @click="clearAdminFilters"
-            :disabled="adminSearchKeyword === '' && selectedAdminStatusFilter === null"
-          >
-            清除篩選
-          </button>
-
-          <!-- showCreateAdminForm = !showCreateAdminForm 
+              <!-- showCreateAdminForm = !showCreateAdminForm
         初始false = 不顯示表單 
         => 按下新增後 
         => showCreateAdminForm.value = true 
         => 顯示表單 -->
-          <!-- 原本false -> @click= !false = true -> 顯示表單
+              <!-- 原本false -> @click= !false = true -> 顯示表單
         => button 顯示"取消新增"-->
-          <!-- 原本true -> @click= !true = false -> 隱藏表單
+              <!-- 原本true -> @click= !true = false -> 隱藏表單
         => button 顯示"新增管理員" 
         ===> 由"toggleCreateAdminForm" 優化-->
-          <!-- 防止 API 正在送出時，使用者按「取消新增」把表單關閉  => 加上:disabled="isCreatingAdmin"
+              <!-- 防止 API 正在送出時，使用者按「取消新增」把表單關閉  => 加上:disabled="isCreatingAdmin"
           isCreatingAdmin=true => button停用 -->
-          <button
-            class="comic-button account-create-button"
-            type="button"
-            :disabled="isCreatingAdmin"
-            @click="toggleCreateAdminForm"
+              <button
+                class="comic-button account-create-button"
+                type="button"
+                :disabled="isCreatingAdmin"
+                @click="toggleCreateAdminForm"
+              >
+                {{ showCreateAdminForm ? '取消新增' : '新增管理員' }}
+              </button>
+            </div>
+          </section>
+          <!-- ------新增管理員表單 => 彈窗------ -->
+          <dialog
+            v-if="showCreateAdminForm"
+            class="account-modal-backdrop"
+            aria-labelledby="create-admin-title"
+            @cancel.prevent="handleDialogCancel"
+            @click.self="handleDialogBackdropClick"
           >
-            {{ showCreateAdminForm ? '取消新增' : '新增管理員' }}
-          </button>
-        </div>
-      </section>
-      <!-- ------新增管理員表單 => 彈窗------ -->
-      <dialog
-        v-if="showCreateAdminForm"
-        class="account-modal-backdrop"
-        aria-labelledby="create-admin-title"
-        @cancel.prevent="handleDialogCancel"
-        @click.self="handleDialogBackdropClick"
-      >
-        <section class="account-modal-window account-modal-window--create-admin">
-          <h2 id="create-admin-title">新增管理員</h2>
+            <section class="account-modal-window account-modal-window--create-admin">
+              <h2 id="create-admin-title">新增管理員</h2>
 
-          <form @submit.prevent="createAdmin">
-            <div>
-              <label for="admin-account">帳號</label>
-              <input
-                id="admin-account"
-                v-model.trim="createAdminForm.account"
-                type="text"
-                minlength="6"
-                maxlength="20"
-                autocomplete="username"
-                required
-              />
-            </div>
-            <div>
-              <label for="admin-password">密碼</label>
+              <form @submit.prevent="createAdmin">
+                <div>
+                  <label for="admin-account">帳號</label>
+                  <input
+                    id="admin-account"
+                    v-model.trim="createAdminForm.account"
+                    type="text"
+                    minlength="6"
+                    maxlength="20"
+                    autocomplete="username"
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="admin-password">密碼</label>
 
-              <input
-                id="admin-password"
-                v-model="createAdminForm.password"
-                type="password"
-                minlength="8"
-                maxlength="100"
-                autocomplete="new-password"
-                required
-              />
-            </div>
+                  <input
+                    id="admin-password"
+                    v-model="createAdminForm.password"
+                    type="password"
+                    minlength="8"
+                    maxlength="100"
+                    autocomplete="new-password"
+                    required
+                  />
+                </div>
 
-            <div>
-              <label for="admin-confirm-password">確認密碼</label>
+                <div>
+                  <label for="admin-confirm-password">確認密碼</label>
 
-              <input
-                id="admin-confirm-password"
-                v-model="createAdminForm.confirmPassword"
-                type="password"
-                minlength="8"
-                maxlength="100"
-                autocomplete="new-password"
-                :aria-invalid="createAdminErrorMessage === '兩次輸入的密碼不一致' ? 'true' : undefined"
-                :aria-describedby="createAdminErrorMessage === '兩次輸入的密碼不一致' ? 'create-admin-error' : undefined"
-                required
-              />
-            </div>
-            <div>
-              <label for="admin-nickname">暱稱</label>
+                  <input
+                    id="admin-confirm-password"
+                    v-model="createAdminForm.confirmPassword"
+                    type="password"
+                    minlength="8"
+                    maxlength="100"
+                    autocomplete="new-password"
+                    :aria-invalid="
+                      createAdminErrorMessage === '兩次輸入的密碼不一致' ? 'true' : undefined
+                    "
+                    :aria-describedby="
+                      createAdminErrorMessage === '兩次輸入的密碼不一致'
+                        ? 'create-admin-error'
+                        : undefined
+                    "
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="admin-nickname">暱稱</label>
 
-              <input
-                id="admin-nickname"
-                v-model.trim="createAdminForm.nickname"
-                type="text"
-                maxlength="100"
-                autocomplete="nickname"
-                required
-              />
-            </div>
+                  <input
+                    id="admin-nickname"
+                    v-model.trim="createAdminForm.nickname"
+                    type="text"
+                    maxlength="100"
+                    autocomplete="nickname"
+                    required
+                  />
+                </div>
 
-            <div>
-              <label for="admin-email">Email</label>
+                <div>
+                  <label for="admin-email">Email</label>
 
-              <input
-                id="admin-email"
-                v-model.trim="createAdminForm.email"
-                type="email"
-                autocomplete="email"
-                required
-              />
-            </div>
+                  <input
+                    id="admin-email"
+                    v-model.trim="createAdminForm.email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                  />
+                </div>
 
-            <div>
-              <label for="admin-phone">電話（選填）</label>
+                <div>
+                  <label for="admin-phone">電話（選填）</label>
 
-              <input
-                id="admin-phone"
-                v-model.trim="createAdminForm.phone"
-                type="tel"
-                inputmode="numeric"
-                pattern="[0-9]{10}"
-                minlength="10"
-                maxlength="10"
-                autocomplete="tel"
-                aria-describedby="admin-phone-help"
-              />
-            </div>
+                  <input
+                    id="admin-phone"
+                    v-model.trim="createAdminForm.phone"
+                    type="tel"
+                    inputmode="numeric"
+                    pattern="[0-9]{10}"
+                    minlength="10"
+                    maxlength="10"
+                    autocomplete="tel"
+                    aria-describedby="admin-phone-help"
+                  />
+                </div>
 
-            <p id="admin-phone-help" class="account-field-help">請輸入 10 位數字。</p>
+                <p id="admin-phone-help" class="account-field-help">請輸入 10 位數字。</p>
 
-            <p
-              v-if="createAdminErrorMessage"
-              id="create-admin-error"
-              ref="createAdminError"
-              class="error"
-              tabindex="-1"
-            >
-              {{ createAdminErrorMessage }}
-            </p>
+                <p
+                  v-if="createAdminErrorMessage"
+                  id="create-admin-error"
+                  ref="createAdminError"
+                  class="error"
+                  tabindex="-1"
+                >
+                  {{ createAdminErrorMessage }}
+                </p>
 
-            <!-- :disabled="isCreatingAdmin"
+                <!-- :disabled="isCreatingAdmin"
             當 API 正在新增管理員時，按鈕會被禁用，避免重複送出。 -->
 
-            <div class="account-modal-actions">
-              <button
-                class="comic-button account-button-primary"
-                type="submit"
-                :disabled="isCreatingAdmin"
-              >
-                {{ isCreatingAdmin ? '新增中...' : '確認新增' }}
-              </button>
-              <button
-                class="comic-button account-button-secondary"
-                type="button"
-                :disabled="isCreatingAdmin"
-                @click="cancelCreateAdminForm"
-              >
-                取消
-              </button>
-            </div>
-          </form>
-        </section>
-      </dialog>
+                <div class="account-modal-actions">
+                  <button
+                    class="comic-button account-button-primary"
+                    type="submit"
+                    :disabled="isCreatingAdmin"
+                  >
+                    {{ isCreatingAdmin ? '新增中...' : '確認新增' }}
+                  </button>
+                  <button
+                    class="comic-button account-button-secondary"
+                    type="button"
+                    :disabled="isCreatingAdmin"
+                    @click="cancelCreateAdminForm"
+                  >
+                    取消
+                  </button>
+                </div>
+              </form>
+            </section>
+          </dialog>
 
-      <p
-        v-if="activeAccountTab === 'admins' && admins.length === 0"
-        class="account-state"
-      >
-        目前沒有管理員
-      </p>
-      <p
-        v-else-if="activeAccountTab === 'admins' && filteredAdmins.length === 0"
-        class="account-state"
-      >
-        目前沒有符合篩選條件的管理員
-      </p>
+          <p v-if="activeAccountTab === 'admins' && admins.length === 0" class="account-state">
+            目前沒有管理員
+          </p>
+          <p
+            v-else-if="activeAccountTab === 'admins' && filteredAdmins.length === 0"
+            class="account-state"
+          >
+            目前沒有符合篩選條件的管理員
+          </p>
 
-      <div
-        v-if="activeAccountTab === 'admins' && filteredAdmins.length > 0"
-        class="account-table-scroll"
-        tabindex="0"
-        role="region"
-        aria-label="管理員清單，可左右捲動"
-      >
-        <table class="account-table account-table--admins">
-          <caption class="visually-hidden">管理員帳號清單</caption>
-          <thead>
-          <tr>
-            <th scope="col">編號</th>
-            <th scope="col">帳號</th>
-            <th scope="col">暱稱</th>
-            <th scope="col">Email</th>
-            <th scope="col">狀態</th>
-            <th scope="col">角色</th>
-            <th scope="col">查看</th>
-            <th scope="col">操作</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="admin in paginatedAdmins" :key="admin.id">
-            <th scope="row">{{ admin.id }}</th>
-            <td>{{ admin.account }}</td>
-            <td>{{ admin.nickname }}</td>
-            <td>{{ admin.email }}</td>
-            <td>{{ getAdminStatusText(admin.status) }}</td>
-            <td>{{ admin.role }}</td>
-            <td>
-              <button
-                type="button"
-                :aria-label="`查看管理員 ${admin.account}`"
-                @click="selectedDetailAdmin = admin"
-              >
-                查看
-              </button>
-            </td>
+          <div
+            v-if="activeAccountTab === 'admins' && filteredAdmins.length > 0"
+            class="account-table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="管理員清單，可左右捲動"
+          >
+            <table class="account-table account-table--admins">
+              <caption class="visually-hidden">
+                管理員帳號清單
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">編號</th>
+                  <th scope="col">帳號</th>
+                  <th scope="col">暱稱</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">狀態</th>
+                  <th scope="col">角色</th>
+                  <th scope="col">查看</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="admin in paginatedAdmins" :key="admin.id">
+                  <th scope="row">{{ admin.id }}</th>
+                  <td>{{ admin.account }}</td>
+                  <td>{{ admin.nickname }}</td>
+                  <td>{{ admin.email }}</td>
+                  <td>{{ getAdminStatusText(admin.status) }}</td>
+                  <td>{{ admin.role }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      :aria-label="`查看管理員 ${admin.account}`"
+                      @click="selectedDetailAdmin = admin"
+                    >
+                      查看
+                    </button>
+                  </td>
 
-            <td>
-              <!-- 目前登入者：不能在管理員清單操作自己 -->
-              <span v-if="currentUser?.id === admin.id"> 目前登入帳號 </span>
+                  <td>
+                    <!-- 目前登入者：不能在管理員清單操作自己 -->
+                    <span v-if="currentUser?.id === admin.id"> 目前登入帳號 </span>
 
-              <!-- 其他管理員 -->
-              <template v-else>
-                <!-- 編輯button -> 視窗用CSS寫的 -->
-                <!-- showModal() 是讓瀏覽器開啟原生模態視窗。 -->
-                <button
-                  type="button"
-                  :disabled="isUpdatingAdminProfile"
-                  :aria-label="`編輯管理員 ${admin.account}`"
-                  @click="openEditAdmin(admin)"
-                >
-                  編輯
-                </button>
-                <!-- 情況一：其他管理員，而且目前是啓用狀態 -->
-                <button
-                  v-if="admin.status === 1"
-                  type="button"
-                  :disabled="updatingAdminId === admin.id"
-                  :aria-label="`${updatingAdminId === admin.id ? '處理中' : '停用'}管理員 ${admin.account}`"
-                  @click="disableAdmin(admin)"
-                >
-                  {{ updatingAdminId === admin.id ? '處理中...' : '停用' }}
-                </button>
-                <!-- 情況二：其他管理員，而且目前是停用狀態 -->
-                <button
-                  v-else
-                  type="button"
-                  :disabled="updatingAdminId === admin.id"
-                  :aria-label="`${updatingAdminId === admin.id ? '處理中' : '啟用'}管理員 ${admin.account}`"
-                  @click="enableAdmin(admin)"
-                >
-                  {{ updatingAdminId === admin.id ? '處理中...' : '啟用' }}
-                </button>
-              </template>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-      <nav
-        v-if="activeAccountTab === 'admins' && filteredAdmins.length > 0"
-        class="account-pagination"
-        aria-label="管理員清單分頁"
-      >
-        <button
-          class="account-page-arrow"
-          type="button"
-          aria-label="上一頁"
-          :disabled="adminCurrentPage === 1"
-          @click="setAdminPage(adminCurrentPage - 1)"
-        >
-          <img :src="pagePreviousIcon" alt="" aria-hidden="true" />
-        </button>
-        <ol>
-          <li v-for="page in adminPageNumbers" :key="page">
+                    <!-- 其他管理員 -->
+                    <template v-else>
+                      <!-- 編輯button -> 視窗用CSS寫的 -->
+                      <!-- showModal() 是讓瀏覽器開啟原生模態視窗。 -->
+                      <button
+                        type="button"
+                        :disabled="isUpdatingAdminProfile"
+                        :aria-label="`編輯管理員 ${admin.account}`"
+                        @click="openEditAdmin(admin)"
+                      >
+                        編輯
+                      </button>
+                      <!-- 情況一：其他管理員，而且目前是啓用狀態 -->
+                      <button
+                        v-if="admin.status === 1"
+                        type="button"
+                        :disabled="updatingAdminId === admin.id"
+                        :aria-label="`${updatingAdminId === admin.id ? '處理中' : '停用'}管理員 ${admin.account}`"
+                        @click="disableAdmin(admin)"
+                      >
+                        {{ updatingAdminId === admin.id ? '處理中...' : '停用' }}
+                      </button>
+                      <!-- 情況二：其他管理員，而且目前是停用狀態 -->
+                      <button
+                        v-else
+                        type="button"
+                        :disabled="updatingAdminId === admin.id"
+                        :aria-label="`${updatingAdminId === admin.id ? '處理中' : '啟用'}管理員 ${admin.account}`"
+                        @click="enableAdmin(admin)"
+                      >
+                        {{ updatingAdminId === admin.id ? '處理中...' : '啟用' }}
+                      </button>
+                    </template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <nav
+            v-if="activeAccountTab === 'admins' && filteredAdmins.length > 0"
+            class="account-pagination"
+            aria-label="管理員清單分頁"
+          >
             <button
+              class="account-page-arrow"
               type="button"
-              :aria-label="`第 ${page} 頁`"
-              :aria-current="page === adminCurrentPage ? 'page' : undefined"
-              :class="{ 'is-current': page === adminCurrentPage }"
-              @click="setAdminPage(page)"
+              aria-label="上一頁"
+              :disabled="adminCurrentPage === 1"
+              @click="setAdminPage(adminCurrentPage - 1)"
             >
-              <img
-                v-if="page === adminCurrentPage"
-                :src="pageCurrentIcon"
-                alt=""
-                aria-hidden="true"
-              />
-              <span>{{ page }}</span>
+              <img :src="pagePreviousIcon" alt="" aria-hidden="true" />
             </button>
-          </li>
-        </ol>
-        <button
-          class="account-page-arrow"
-          type="button"
-          aria-label="下一頁"
-          :disabled="adminCurrentPage >= adminTotalPages"
-          @click="setAdminPage(adminCurrentPage + 1)"
-        >
-          <img :src="pageNextIcon" alt="" aria-hidden="true" />
-        </button>
-        <span class="visually-hidden">
-          第 {{ adminCurrentPage }} 頁，共 {{ adminTotalPages }} 頁
-        </span>
-      </nav>
-      <!-- ------變更管理員狀態 : 彈出視窗 ------ -->
-      <!-- 初始 selectedAdmin.value = null -> 不顯示 
+            <ol>
+              <li v-for="page in adminPageNumbers" :key="page">
+                <button
+                  type="button"
+                  :aria-label="`第 ${page} 頁`"
+                  :aria-current="page === adminCurrentPage ? 'page' : undefined"
+                  :class="{ 'is-current': page === adminCurrentPage }"
+                  @click="setAdminPage(page)"
+                >
+                  <img
+                    v-if="page === adminCurrentPage"
+                    :src="pageCurrentIcon"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span>{{ page }}</span>
+                </button>
+              </li>
+            </ol>
+            <button
+              class="account-page-arrow"
+              type="button"
+              aria-label="下一頁"
+              :disabled="adminCurrentPage >= adminTotalPages"
+              @click="setAdminPage(adminCurrentPage + 1)"
+            >
+              <img :src="pageNextIcon" alt="" aria-hidden="true" />
+            </button>
+            <span class="visually-hidden">
+              第 {{ adminCurrentPage }} 頁，共 {{ adminTotalPages }} 頁
+            </span>
+          </nav>
+          <!-- ------變更管理員狀態 : 彈出視窗 ------ -->
+          <!-- 初始 selectedAdmin.value = null -> 不顯示
                 selectedAdmin.value !== null -> 顯示表單 -->
-      <!-- class="modal-backdrop" => 覆蓋整個畫面的半透明背景 -->
-      <!-- class="modal-window" => 中間真正顯示內容的視窗 -->
-      <!-- v-if="selectedAdmin" => 只有選到管理員時才建立視窗 -->
-      <!-- @click.self="cancelDisableAdmin" => 只有直接點擊視窗外面的背景才執行  -->
-      <!-- 整體結構：
+          <!-- class="modal-backdrop" => 覆蓋整個畫面的半透明背景 -->
+          <!-- class="modal-window" => 中間真正顯示內容的視窗 -->
+          <!-- v-if="selectedAdmin" => 只有選到管理員時才建立視窗 -->
+          <!-- @click.self="cancelDisableAdmin" => 只有直接點擊視窗外面的背景才執行  -->
+          <!-- 整體結構：
         modal-backdrop：全畫面黑色半透明背景
         └── modal-window：中央白色視窗
             ├── 標題
@@ -2757,273 +2846,269 @@ const member = selectedMember.value
                 ├── 錯誤訊息
                 ├── 確認按鈕
                 └── 取消按鈕-->
-      <dialog
-        v-if="selectedAdmin"
-        class="account-modal-backdrop"
-        aria-labelledby="admin-status-title"
-        @cancel.prevent="handleDialogCancel"
-        @click.self="handleDialogBackdropClick"
-      >
-        <section
-          class="account-modal-window account-modal-window--admin-status"
-          :class="{ 'account-modal-window--confirm': selectedAdminStatus === 1 }"
-        >
-          <!-- 代入選擇管理員的帳號 -->
-          <h2 id="admin-status-title">
-            {{
-              selectedAdminStatus === 1
-                ? `確定要啟用管理員「${selectedAdmin.account}」嗎？`
-                : `變更管理員狀態：${selectedAdmin.account}`
-            }}
-          </h2>
-          <button
-            v-if="selectedAdminStatus === 1"
-            class="account-dialog-close"
-            type="button"
-            aria-label="關閉"
-            :disabled="updatingAdminId === selectedAdmin.id"
-            @click="cancelDisableAdmin"
+          <dialog
+            v-if="selectedAdmin"
+            class="account-modal-backdrop"
+            aria-labelledby="admin-status-title"
+            @cancel.prevent="handleDialogCancel"
+            @click.self="handleDialogBackdropClick"
           >
-            ×
-          </button>
-
-          <!-- 表單送出 -->
-          <form
-            :class="{ 'account-confirm-form': selectedAdminStatus === 1 }"
-            @submit.prevent="confirmDisableAdmin"
-          >
-            <div v-if="selectedAdminStatus !== 1">
-              <label for="admin-disabled-status"> 新狀態 </label>
-
-              <!-- .number 會盡量把選到的值轉成數字 -->
-              <select
-                id="admin-disabled-status"
-                v-model.number="selectedAdminStatus"
-                required
-                :aria-describedby="actionErrorMessage ? 'admin-status-error' : undefined"
-                :aria-invalid="actionErrorMessage ? 'true' : undefined"
-              >
-                <option
-                  v-for="option in adminDisabledOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <p
-              v-if="actionErrorMessage"
-              id="admin-status-error"
-              class="error"
-              role="alert"
+            <section
+              class="account-modal-window account-modal-window--admin-status"
+              :class="{ 'account-modal-window--confirm': selectedAdminStatus === 1 }"
             >
-              {{ actionErrorMessage }}
-            </p>
+              <!-- 代入選擇管理員的帳號 -->
+              <h2 id="admin-status-title">
+                {{
+                  selectedAdminStatus === 1
+                    ? `確定要啟用管理員「${selectedAdmin.account}」嗎？`
+                    : `變更管理員狀態：${selectedAdmin.account}`
+                }}
+              </h2>
+              <button
+                v-if="selectedAdminStatus === 1"
+                class="account-dialog-close"
+                type="button"
+                aria-label="關閉"
+                :disabled="updatingAdminId === selectedAdmin.id"
+                @click="cancelDisableAdmin"
+              >
+                ×
+              </button>
 
-            <!-- button的submit 
+              <!-- 表單送出 -->
+              <form
+                :class="{ 'account-confirm-form': selectedAdminStatus === 1 }"
+                @submit.prevent="confirmDisableAdmin"
+              >
+                <div v-if="selectedAdminStatus !== 1">
+                  <label for="admin-disabled-status"> 新狀態 </label>
+
+                  <!-- .number 會盡量把選到的值轉成數字 -->
+                  <select
+                    id="admin-disabled-status"
+                    v-model.number="selectedAdminStatus"
+                    required
+                    :aria-describedby="actionErrorMessage ? 'admin-status-error' : undefined"
+                    :aria-invalid="actionErrorMessage ? 'true' : undefined"
+                  >
+                    <option
+                      v-for="option in adminDisabledOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <p v-if="actionErrorMessage" id="admin-status-error" class="error" role="alert">
+                  {{ actionErrorMessage }}
+                </p>
+
+                <!-- button的submit
             => 執行<form>的confirmDisableAdmin() -->
-            <!-- 準備修改的管理員 === 目前選擇的管理員 => 判斷目前是不是正在更新這位管理員  -->
-            <div v-if="selectedAdminStatus === 1" class="account-confirm-actions">
-              <button
-                class="comic-button account-button-primary"
-                type="submit"
-                :disabled="updatingAdminId === selectedAdmin.id"
-              >
-                {{ updatingAdminId === selectedAdmin.id ? '處理中...' : '確定' }}
-              </button>
-              <span>or</span>
-              <button
-                class="comic-button account-button-secondary"
-                type="button"
-                :disabled="updatingAdminId === selectedAdmin.id"
-                @click="cancelDisableAdmin"
-              >
-                取消
-              </button>
-            </div>
-            <div v-else class="account-modal-actions">
-              <button
-                class="comic-button account-button-secondary"
-                type="button"
-                :disabled="updatingAdminId === selectedAdmin.id"
-                @click="cancelDisableAdmin"
-              >
-                取消
-              </button>
-              <button
-                class="comic-button account-button-primary"
-                type="submit"
-                :disabled="updatingAdminId === selectedAdmin.id"
-              >
-                {{ updatingAdminId === selectedAdmin.id ? '處理中...' : '確認變更' }}
-              </button>
-            </div>
-          </form>
-        </section>
-      </dialog>
+                <!-- 準備修改的管理員 === 目前選擇的管理員 => 判斷目前是不是正在更新這位管理員  -->
+                <div v-if="selectedAdminStatus === 1" class="account-confirm-actions">
+                  <button
+                    class="comic-button account-button-primary"
+                    type="submit"
+                    :disabled="updatingAdminId === selectedAdmin.id"
+                  >
+                    {{ updatingAdminId === selectedAdmin.id ? '處理中...' : '確定' }}
+                  </button>
+                  <span>or</span>
+                  <button
+                    class="comic-button account-button-secondary"
+                    type="button"
+                    :disabled="updatingAdminId === selectedAdmin.id"
+                    @click="cancelDisableAdmin"
+                  >
+                    取消
+                  </button>
+                </div>
+                <div v-else class="account-modal-actions">
+                  <button
+                    class="comic-button account-button-secondary"
+                    type="button"
+                    :disabled="updatingAdminId === selectedAdmin.id"
+                    @click="cancelDisableAdmin"
+                  >
+                    取消
+                  </button>
+                  <button
+                    class="comic-button account-button-primary"
+                    type="submit"
+                    :disabled="updatingAdminId === selectedAdmin.id"
+                  >
+                    {{ updatingAdminId === selectedAdmin.id ? '處理中...' : '確認變更' }}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </dialog>
 
-      <!-- ------編輯管理員資料：彈出視窗------ -->
-      <!-- 覆蓋整個畫面的半透明背景 => 點擊背景後 => 關閉彈窗 -->
-      <dialog
-        v-if="selectedEditAdmin"
-        class="account-modal-backdrop"
-        aria-labelledby="edit-admin-title"
-        @cancel.prevent="handleDialogCancel"
-        @click.self="handleDialogBackdropClick"
-      >
-        <!-- 中央彈窗 -->
-        <section class="account-modal-window account-modal-window--edit-admin">
-          <h2 id="edit-admin-title">編輯管理員：{{ selectedEditAdmin.account }}</h2>
-          <form @submit.prevent="updateAdminProfile">
-            <div>
-              <!-- 編輯表單顯示暱稱時，不允許使用者把它清空 -->
-              <label for="edit-admin-nickname">暱稱</label>
-              <input
-                id="edit-admin-nickname"
-                v-model.trim="editAdminForm.nickname"
-                type="text"
-                maxlength="100"
-                autocomplete="nickname"
-                required
-              />
-            </div>
-            <div>
-              <!-- 編輯表單顯示Email時，不允許使用者把它清空 -->
-              <label for="edit-admin-email">Email</label>
-              <input
-                id="edit-admin-email"
-                v-model.trim="editAdminForm.email"
-                type="email"
-                autocomplete="email"
-                required
-              />
-            </div>
-            <!-- 因為表單一開始會顯示完整原資料，required 是防止使用者把既有的暱稱或 Email 清空 -->
-            <div>
-              <!-- 電話沒有required，所以畫面允許空白 -->
-              <!-- type="tel" -> 點擊時通常會開啟電話／數字鍵盤，方便輸入電話 -->
-              <!-- 電話欄位建議再補上： 
+          <!-- ------編輯管理員資料：彈出視窗------ -->
+          <!-- 覆蓋整個畫面的半透明背景 => 點擊背景後 => 關閉彈窗 -->
+          <dialog
+            v-if="selectedEditAdmin"
+            class="account-modal-backdrop"
+            aria-labelledby="edit-admin-title"
+            @cancel.prevent="handleDialogCancel"
+            @click.self="handleDialogBackdropClick"
+          >
+            <!-- 中央彈窗 -->
+            <section class="account-modal-window account-modal-window--edit-admin">
+              <h2 id="edit-admin-title">編輯管理員：{{ selectedEditAdmin.account }}</h2>
+              <form @submit.prevent="updateAdminProfile">
+                <div>
+                  <!-- 編輯表單顯示暱稱時，不允許使用者把它清空 -->
+                  <label for="edit-admin-nickname">暱稱</label>
+                  <input
+                    id="edit-admin-nickname"
+                    v-model.trim="editAdminForm.nickname"
+                    type="text"
+                    maxlength="100"
+                    autocomplete="nickname"
+                    required
+                  />
+                </div>
+                <div>
+                  <!-- 編輯表單顯示Email時，不允許使用者把它清空 -->
+                  <label for="edit-admin-email">Email</label>
+                  <input
+                    id="edit-admin-email"
+                    v-model.trim="editAdminForm.email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                  />
+                </div>
+                <!-- 因為表單一開始會顯示完整原資料，required 是防止使用者把既有的暱稱或 Email 清空 -->
+                <div>
+                  <!-- 電話沒有required，所以畫面允許空白 -->
+                  <!-- type="tel" -> 點擊時通常會開啟電話／數字鍵盤，方便輸入電話 -->
+                  <!-- 電話欄位建議再補上：
               inputmode="numeric" -> 手機顯示數字鍵盤
               pattern="[0-9]{10}" -> 必須是10個數字
               placeholder="例如：0912345678" -> 輸入框顯示：提示輸入格式 -->
-              <label for="edit-admin-phone">電話(選填)</label>
-              <input
-                id="edit-admin-phone"
-                v-model.trim="editAdminForm.phone"
-                type="tel"
-                inputmode="numeric"
-                pattern="[0-9]{10}"
-                maxlength="10"
-                autocomplete="tel"
-                placeholder="例如：0912345678"
-                aria-describedby="edit-admin-phone-help"
-              />
-            </div>
-            <p id="edit-admin-phone-help" class="account-field-help">請輸入 10 位數字。</p>
-            <p
-              v-if="editAdminErrorMessage"
-              id="edit-admin-error"
-              ref="editAdminError"
-              class="error"
-              tabindex="-1"
-            >
-              {{ editAdminErrorMessage }}
-            </p>
+                  <label for="edit-admin-phone">電話(選填)</label>
+                  <input
+                    id="edit-admin-phone"
+                    v-model.trim="editAdminForm.phone"
+                    type="tel"
+                    inputmode="numeric"
+                    pattern="[0-9]{10}"
+                    maxlength="10"
+                    autocomplete="tel"
+                    placeholder="例如：0912345678"
+                    aria-describedby="edit-admin-phone-help"
+                  />
+                </div>
+                <p id="edit-admin-phone-help" class="account-field-help">請輸入 10 位數字。</p>
+                <p
+                  v-if="editAdminErrorMessage"
+                  id="edit-admin-error"
+                  ref="editAdminError"
+                  class="error"
+                  tabindex="-1"
+                >
+                  {{ editAdminErrorMessage }}
+                </p>
 
-            <div class="account-modal-actions">
+                <div class="account-modal-actions">
+                  <button
+                    class="comic-button account-button-secondary"
+                    type="button"
+                    :disabled="isUpdatingAdminProfile"
+                    @click="cancelEditAdmin"
+                  >
+                    取消
+                  </button>
+                  <button
+                    class="comic-button account-button-primary"
+                    type="submit"
+                    :disabled="isUpdatingAdminProfile"
+                  >
+                    {{ isUpdatingAdminProfile ? '儲存中...' : '儲存修改' }}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </dialog>
+
+          <!-- ------管理員詳細資料 => 彈窗 ------ -->
+          <dialog
+            v-if="selectedDetailAdmin"
+            class="account-modal-backdrop"
+            aria-labelledby="admin-detail-title"
+            @cancel.prevent="handleDialogCancel"
+            @click.self="handleDialogBackdropClick"
+          >
+            <!-- 中央彈窗 -->
+            <section class="account-modal-window account-modal-window--admin-detail">
+              <h2 id="admin-detail-title">管理員詳細資料</h2>
+              <div
+                class="account-detail-scroll"
+                tabindex="0"
+                role="region"
+                aria-label="管理員詳細資料表，可左右捲動"
+              >
+                <table class="account-detail-table">
+                  <caption class="visually-hidden">
+                    管理員詳細資料
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">編號</th>
+                      <th scope="col">帳號</th>
+                      <th scope="col">暱稱</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">電話</th>
+                      <th scope="col">狀態</th>
+                      <th scope="col">角色</th>
+                      <th scope="col">建立時間</th>
+                      <th scope="col">最後登入</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{{ selectedDetailAdmin.id }}</td>
+                      <td>{{ selectedDetailAdmin.account }}</td>
+                      <td>{{ selectedDetailAdmin.nickname }}</td>
+                      <td>{{ selectedDetailAdmin.email }}</td>
+                      <td>{{ selectedDetailAdmin.phone || '未填寫' }}</td>
+                      <td>{{ getAdminStatusText(selectedDetailAdmin.status) }}</td>
+                      <td>{{ selectedDetailAdmin.role }}</td>
+                      <td>
+                        {{
+                          selectedDetailAdmin.createdAt
+                            ? formatDateTime(selectedDetailAdmin.createdAt)
+                            : '無建立時間'
+                        }}
+                      </td>
+                      <td>
+                        {{
+                          selectedDetailAdmin.lastLoginAt
+                            ? formatDateTime(selectedDetailAdmin.lastLoginAt)
+                            : '尚未登入'
+                        }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <button
                 class="comic-button account-button-secondary"
                 type="button"
-                :disabled="isUpdatingAdminProfile"
-                @click="cancelEditAdmin"
+                @click="cancelDetailAdmin"
               >
-                取消
+                關閉
               </button>
-              <button
-                class="comic-button account-button-primary"
-                type="submit"
-                :disabled="isUpdatingAdminProfile"
-              >
-                {{ isUpdatingAdminProfile ? '儲存中...' : '儲存修改' }}
-              </button>
-            </div>
-          </form>
-        </section>
-      </dialog>
-
-      <!-- ------管理員詳細資料 => 彈窗 ------ -->
-      <dialog
-        v-if="selectedDetailAdmin"
-        class="account-modal-backdrop"
-        aria-labelledby="admin-detail-title"
-        @cancel.prevent="handleDialogCancel"
-        @click.self="handleDialogBackdropClick"
-      >
-        <!-- 中央彈窗 -->
-        <section class="account-modal-window account-modal-window--admin-detail">
-          <h2 id="admin-detail-title">管理員詳細資料</h2>
-          <div
-            class="account-detail-scroll"
-            tabindex="0"
-            role="region"
-            aria-label="管理員詳細資料表，可左右捲動"
-          >
-            <table class="account-detail-table">
-              <caption class="visually-hidden">管理員詳細資料</caption>
-              <thead>
-                <tr>
-                  <th scope="col">編號</th>
-                  <th scope="col">帳號</th>
-                  <th scope="col">暱稱</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">電話</th>
-                  <th scope="col">狀態</th>
-                  <th scope="col">角色</th>
-                  <th scope="col">建立時間</th>
-                  <th scope="col">最後登入</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{{ selectedDetailAdmin.id }}</td>
-                  <td>{{ selectedDetailAdmin.account }}</td>
-                  <td>{{ selectedDetailAdmin.nickname }}</td>
-                  <td>{{ selectedDetailAdmin.email }}</td>
-                  <td>{{ selectedDetailAdmin.phone || '未填寫' }}</td>
-                  <td>{{ getAdminStatusText(selectedDetailAdmin.status) }}</td>
-                  <td>{{ selectedDetailAdmin.role }}</td>
-                  <td>
-                    {{
-                      selectedDetailAdmin.createdAt
-                        ? formatDateTime(selectedDetailAdmin.createdAt)
-                        : '無建立時間'
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      selectedDetailAdmin.lastLoginAt
-                        ? formatDateTime(selectedDetailAdmin.lastLoginAt)
-                        : '尚未登入'
-                    }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <button
-            class="comic-button account-button-secondary"
-            type="button"
-            @click="cancelDetailAdmin"
-          >
-            關閉
-          </button>
-        </section>
-      </dialog>
-    </template>
+            </section>
+          </dialog>
+        </template>
       </div>
     </main>
   </div>
 </template>
-

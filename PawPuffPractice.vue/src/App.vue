@@ -18,7 +18,7 @@ import { useAuth } from './composables/useAuth.js'
 
 const route = useRoute()
 const hidesGlobalHeader = computed(() =>
-  ['login', 'admin-clock', 'admin-clock-records', 'admin-users', 'admin-leave'].includes(
+  ['login', 'member', 'admin-clock', 'admin-clock-records', 'admin-users', 'admin-leave'].includes(
     route.name,
   ),
 )
