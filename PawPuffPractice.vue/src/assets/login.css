@@ -236,6 +236,95 @@
   --drip-button-focus: var(--login-info);
 }
 
+/* Google／Apple 登入：先做外觀，尚未接上 OAuth */
+.login-social {
+  margin-top: var(--login-space-6);
+}
+
+.login-social-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--login-space-4);
+  margin: 0 0 var(--login-space-4);
+  color: var(--login-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.login-social-divider::before,
+.login-social-divider::after {
+  height: 1px;
+  flex: 1 1 auto;
+  background: rgb(0 0 0 / 15%);
+  content: '';
+}
+
+.login-social-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--login-space-4);
+}
+
+.login-social-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--login-space-2);
+  padding: 0 var(--login-space-3);
+  border: 1px solid var(--login-border);
+  border-radius: 6px;
+  color: var(--login-dark);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.login-social-button img {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.login-social-button:hover {
+  background: #f7f7f7;
+}
+
+.login-social-button:focus-visible {
+  outline: 2px solid var(--login-info);
+  outline-offset: 2px;
+}
+
+.login-social-message {
+  min-height: 16px;
+  margin: var(--login-space-3) 0 0;
+  color: var(--login-info);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* 「還沒有帳號？註冊」：template 目前註解中，取消註解後樣式即生效 */
+.login-register {
+  margin: var(--login-space-6) 0 0;
+  color: var(--login-dark);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.login-register a {
+  color: var(--login-info);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.login-register a:focus-visible {
+  outline: 2px solid var(--login-info);
+  outline-offset: 2px;
+}
+
 .login-decoration {
   position: absolute;
   z-index: 0;

@@ -60,20 +60,7 @@ const router = createRouter({
         requiresAuth:true
       }
     },
-    {
-      path: '/member/edit',
-      name: 'profile-edit',
-      component:() => 
-        import('../views/ProfileEditView.vue'),
-      meta:{
-        // requiresAuth = 需要登入驗證
-        requiresAuth:true
-      }
-    },
-    {
-      path: '/member/password',
-      name: 'change-password',
-
+  
       // Vue Router 有兩種載入頁面元件的寫法，兩種都正確
       // 寫法一 :「直接載入」
       // 優點：
@@ -110,14 +97,6 @@ const router = createRouter({
       // → 才載入修改密碼頁
       //
       // =>這不是硬性規定，只是一種效能安排
-
-      component:() => 
-        import('../views/ChangePasswordView.vue'),
-      meta:{
-        // requiresAuth = 需要登入驗證
-        requiresAuth:true
-      }
-    },
     {
       path: '/admin/users',
       name: 'admin-users',
@@ -171,8 +150,7 @@ const router = createRouter({
         //自定義 ,代表必須是管理員
       }
     },
-    
-  ],
+],
 })
 
 // | 準備進入的頁面 | `to.meta.requiresAuth` |
