@@ -60,20 +60,7 @@ const router = createRouter({
         requiresAuth:true
       }
     },
-    {
-      path: '/member/edit',
-      name: 'profile-edit',
-      component:() => 
-        import('../views/ProfileEditView.vue'),
-      meta:{
-        // requiresAuth = 需要登入驗證
-        requiresAuth:true
-      }
-    },
-    {
-      path: '/member/password',
-      name: 'change-password',
-
+  
       // Vue Router 有兩種載入頁面元件的寫法，兩種都正確
       // 寫法一 :「直接載入」
       // 優點：
@@ -110,14 +97,6 @@ const router = createRouter({
       // → 才載入修改密碼頁
       //
       // =>這不是硬性規定，只是一種效能安排
-
-      component:() => 
-        import('../views/ChangePasswordView.vue'),
-      meta:{
-        // requiresAuth = 需要登入驗證
-        requiresAuth:true
-      }
-    },
     {
       path: '/admin/users',
       name: 'admin-users',
@@ -171,8 +150,7 @@ const router = createRouter({
         //自定義 ,代表必須是管理員
       }
     },
-    
-  ],
+],
 })
 
 // | 準備進入的頁面 | `to.meta.requiresAuth` |
@@ -198,11 +176,10 @@ router.beforeEach(async (to) =>{
     initializeAuth
   } = useAuth()
 
-  // 網站重新整理後，先向後端確認 Cookie 登入狀態
-  // authInitialized.value = false => 沒有向後端檢查登入 
-  // => !authInitialized.value = true  
-  if(!authInitialized.value){
-    // 執行登入狀態
+  // 只有「需要登入」的頁面才必須等後端確認 Cookie。
+  // /login 和 /register 是公開頁面；若這裡也 await，後端暫時沒有回應時，
+  // 使用者點「註冊」就會看起來像連結完全沒反應。
+  if (to.meta.requiresAuth && !authInitialized.value) {
     await initializeAuth()
   }
 

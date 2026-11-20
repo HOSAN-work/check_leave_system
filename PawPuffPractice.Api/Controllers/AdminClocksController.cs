@@ -297,7 +297,7 @@ namespace PawPuffPractice.Api.Controllers
                 ClockOutTime = adminClock.ClockOutTime,
             };
 
-            return Ok(new { message = "上班打卡成功", record });
+            return Ok(new { message = "下班打卡成功", record });
         }
 
         // 下班打卡API
@@ -373,7 +373,7 @@ namespace PawPuffPractice.Api.Controllers
             {
                 // clients 是工廠，`CreateClient()` 取得真正能發 HTTP 的 client
                 using var client = clients.CreateClient();
-                string message = $"上班打卡成功：{now:HH:mm}";
+                string message = $"下班打卡成功：{now:HH:mm}";
 
                 try
                 {
@@ -403,7 +403,7 @@ namespace PawPuffPractice.Api.Controllers
                 ClockOutTime = adminClock.ClockOutTime,
             };
 
-            return Ok(new { message = "下班打卡成功", record });
+            return Ok(new { message = "上班打卡成功", record });
         }
 
         // 今日狀態 API
