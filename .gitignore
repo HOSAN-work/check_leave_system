@@ -2,6 +2,9 @@
 
 notes/
 
+# git時忽略note_modules folder 
+node_modules/
+
 # 忽略 .NET 編譯時產生的暫存與輸出資料夾
 **/bin/
 **/obj/
