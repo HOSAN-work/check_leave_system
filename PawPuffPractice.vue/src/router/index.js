@@ -176,11 +176,10 @@ router.beforeEach(async (to) =>{
     initializeAuth
   } = useAuth()
 
-  // 網站重新整理後，先向後端確認 Cookie 登入狀態
-  // authInitialized.value = false => 沒有向後端檢查登入 
-  // => !authInitialized.value = true  
-  if(!authInitialized.value){
-    // 執行登入狀態
+  // 只有「需要登入」的頁面才必須等後端確認 Cookie。
+  // /login 和 /register 是公開頁面；若這裡也 await，後端暫時沒有回應時，
+  // 使用者點「註冊」就會看起來像連結完全沒反應。
+  if (to.meta.requiresAuth && !authInitialized.value) {
     await initializeAuth()
   }
 

@@ -3,8 +3,15 @@
 <!-- JavaScript 邏輯 -->
 <script setup>
 import { nextTick, reactive, ref } from 'vue'
+
+// nextTick()      // 等 Vue 更新完畫面
+// reactive()      // 建立響應式物件，例如表單
+// ref()           // 建立響應式單一資料
+// RouterLink      // 建立可以點擊的頁面連結
+// useRouter()     // 取得控制頁面跳轉的 router
+
 // RouterLink：按下「登入」時由 Vue Router 切換頁面，不會重新載入整份網站
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import api from '@/services/api'
 import '../assets/register.css'
 
@@ -15,6 +22,10 @@ import registerCharacter from '../assets/register-character.png'
 import loginEyeIcon from '../assets/login-eye.svg'
 import oauthGoogleIcon from '../assets/oauth-google.svg'
 import oauthAppleIcon from '../assets/oauth-apple.svg'
+import { HttpStatusCode } from 'axios'
+
+// useRouter() 取得目前 Vue 應用程式的路由控制器，註冊成功後用它前往登入頁。
+const router = useRouter()
 
 //表單資料
 const form = reactive({
@@ -98,10 +109,39 @@ function conflictFieldFor(message) {
   return ''
 }
 
+// field 是什麼？
+// field 是「哪一個欄位發生錯誤」。
+// 如 Email 重複時，程式會執行：focusField('email')
+// 因此函式裡：field === 'email'
+//
+// 如果帳號重複：focusField('account')
+// field === 'account'
 async function focusField(field) {
+  // 這裡的 await 可以理解成：
+  // 先停在這一行，等 Vue 更新完成，再繼續往下執行。
+  //
+  // await nextTick() 等 Vue 完成這次畫面更新。
+  // Vue 為了效能，通常會把多個資料變更集中起來，再一次更新畫面
   await nextTick()
+
+  // # 代表「用 HTML 的 id 尋找元素」。
+  // `#${fieldElementIds[email]}`
+  // 結果是：'#register-email'
+  //
+  // formRef.value 是什麼？
+  // 表單有：<form ref="formRef">
+  // JavaScript 則有：const formRef = ref(null)
+  // Vue 顯示表單後，會把真正的 <form> HTML 元素放進：
+  // formRef.value
+  // 可以把它想成：formRef.value = 目前畫面上的註冊表單
+  //
+  // querySelector() 在做什麼？
+  // const input = formRef.value?.querySelector('#register-email')
+  // 意思是：從註冊表單裡，尋找 id="register-email" 的 HTML 元素。
+  // 它找到的是這個輸入框：<input id="register-email" />
+  // 找到後，`input` 裡面保存的就是這個 Email 輸入框。
   const input = formRef.value?.querySelector(`#${fieldElementIds[field]}`)
-  input?.focus()
+  input?.focus() //將輸入游標移到該欄位
 }
 
 // 電話只收數字：貼上含空白或連字號的號碼也會自動清乾淨
@@ -209,6 +249,12 @@ async function registerMember() {
       email: '',
       phone: '',
     })
+    // vue Router
+    // axios的HttpStatusCode裡的狀態
+    if (response.status === HttpStatusCode.Ok) {
+      alert('註冊成功')
+      router.push('/login')
+    }
   } catch (error) {
     //註冊 API 失敗
     //如果後端回傳：400、409、500
@@ -314,9 +360,7 @@ async function registerMember() {
 
     <div class="register-content">
       <h1 class="register-title">會員註冊</h1>
-      <p class="register-subtitle">
-        Let's get you all up so you can access your personal account.
-      </p>
+      <p class="register-subtitle">Let's get you all up so you can access your personal account.</p>
 
       <form
         ref="formRef"
@@ -513,9 +557,7 @@ async function registerMember() {
         </p>
       </form>
 
-      <p class="register-login">
-        已經有帳號？<RouterLink to="/login">登入</RouterLink>
-      </p>
+      <p class="register-login">已經有帳號？<RouterLink to="/login">登入</RouterLink></p>
 
       <div class="register-social">
         <p class="register-social-divider">或者用其他登入？</p>
