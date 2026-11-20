@@ -407,9 +407,7 @@ async function submitlogin() {
       </form>
 
       <!-- 還沒有帳號？註冊：位置在登入按鈕下方、分隔線上方 -->
-      <p class="login-register">
-        還沒有帳號？<RouterLink to="/register">註冊</RouterLink>
-      </p>
+      <p class="login-register">還沒有帳號？<RouterLink to="/register">註冊</RouterLink></p>
 
       <!-- Google／Apple 登入：目前沒有後端 OAuth，只做外觀，點擊顯示尚未開放 -->
       <div class="login-social">
