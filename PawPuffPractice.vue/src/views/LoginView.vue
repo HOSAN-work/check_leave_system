@@ -9,7 +9,7 @@ import { reactive, ref } from 'vue'
 // 沒有切換頁面，所以不需要 useRouter()
 // 現在我們改成登入成功後自動回首頁：
 // await router.push('/')
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 
 import '../assets/login.css'
 
@@ -22,6 +22,8 @@ import loginUserIcon from '../assets/login-user.svg'
 import loginEyeIcon from '../assets/login-eye.svg'
 import loginInfoIcon from '../assets/login-info.svg'
 import loginErrorIcon from '../assets/login-error.svg'
+import oauthGoogleIcon from '../assets/oauth-google.svg'
+import oauthAppleIcon from '../assets/oauth-apple.svg'
 
 // useRouter() → 控制「要去哪裡」=> 控制頁面跳轉
 // 取得 Router：const router = useRouter()
@@ -71,6 +73,14 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 const isCapsLockOn = ref(false)
 const isPasswordVisible = ref(false)
+
+// Google／Apple 登入還沒接上後端 OAuth，先只做外觀，點擊時顯示提示
+const socialMessage = ref('')
+
+function openSocialLogin(provider) {
+  // 之後接上第三方登入時，這裡改成導向該平台的授權頁
+  socialMessage.value = `${provider} 登入尚未開放，請先使用帳號密碼登入`
+}
 
 function updateCapsLock(event) {
   isCapsLockOn.value = event.getModifierState('CapsLock')
@@ -395,6 +405,34 @@ async function submitlogin() {
           </button>
         </div>
       </form>
+
+      <!-- 還沒有帳號？註冊：位置在登入按鈕下方、分隔線上方 -->
+      <p class="login-register">還沒有帳號？<RouterLink to="/register">註冊</RouterLink></p>
+
+      <!-- Google／Apple 登入：目前沒有後端 OAuth，只做外觀，點擊顯示尚未開放 -->
+      <div class="login-social">
+        <p class="login-social-divider">或</p>
+        <div class="login-social-buttons">
+          <button
+            class="login-social-button"
+            type="button"
+            aria-label="使用 Google 帳號登入"
+            @click="openSocialLogin('Google')"
+          >
+            <img :src="oauthGoogleIcon" alt="" aria-hidden="true" />
+          </button>
+          <button
+            class="login-social-button"
+            type="button"
+            aria-label="使用 Apple 帳號登入"
+            @click="openSocialLogin('Apple')"
+          >
+            <img :src="oauthAppleIcon" alt="" aria-hidden="true" />
+          </button>
+        </div>
+        <p class="login-social-message" role="status" aria-atomic="true">{{ socialMessage }}</p>
+      </div>
+
       <p class="visually-hidden" role="status" aria-atomic="true">
         {{ isSubmitting ? '登入中' : '' }}
       </p>
