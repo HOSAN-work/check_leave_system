@@ -12,9 +12,11 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 // 決定：什麼時候執行 initializeAuth()
 //
 //
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch, ref } from 'vue'
 
 import { useAuth } from './composables/useAuth.js'
+
+import IntroVideo from './components/IntroVideo.vue'
 
 const route = useRoute()
 // 註冊頁和登入頁一樣是滿版紙張版面（依 Figma），不需要再疊一層表頭
@@ -30,6 +32,28 @@ const hidesGlobalHeader = computed(() =>
   ].includes(route.name),
 )
 const router = useRouter()
+
+// IntroVideo
+const showIntro = ref(!sessionStorage.getItem('introPlayed'))
+// showIntro = true -> 顯示影片
+// showIntro = false -> 顯示網頁
+//
+// sessionStorage 是瀏覽器提供的小記事本，關掉分頁就會清空。這句是去記事本找一筆叫 introPlayed 的紀錄
+// 沒找到（第一次進網站）→ 得到 null
+// 找到了（已經播過）→ 得到 '1'
+//
+// sessionStorage.setItem('名字', '值')	把東西放進櫃子
+// sessionStorage.getItem('名字')	把東西拿出來
+// sessionStorage.removeItem('名字')	把某一格丟掉
+// sessionStorage.clear()	把整個櫃子清空
+
+// finishIntro：關掉開關
+function finishIntro() {
+  sessionStorage.setItem('introPlayed', '1')
+  showIntro.value = false
+}
+// sessionStorage.setItem('introPlayed', '1') → 在記事本寫下「播過了」
+// showIntro.value = false → 把開關關掉，畫面立刻切換成正常網頁
 
 const { currentUser, isLoggedIn, authInitialized, initializeAuth, logout } = useAuth()
 //這叫做 Object Destructuring，物件解構
@@ -106,19 +130,24 @@ watch(isLoggedIn, (newIsLoggedIn, oldIsLoggedIn) => {
 </script>
 
 <template>
-  <!-- /login → 不显示 Vue Logo、HelloWorld、导航列
-其他页面 → 正常显示 Header -->
-  <header v-if="!hidesGlobalHeader">
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <!-- Intro Video -->
 
-    <div class="wrapper">
-      <!--  nav 代表網站的導覽區域，例如首頁、登入、註冊和登出 
+  <IntroVideo v-if="showIntro" @done="finishIntro" />
+
+  <template v-else>
+    <!-- /login → 不显示 Vue Logo、HelloWorld、导航列
+其他页面 → 正常显示 Header -->
+    <header v-if="!hidesGlobalHeader">
+      <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+
+      <div class="wrapper">
+        <!--  nav 代表網站的導覽區域，例如首頁、登入、註冊和登出 
 可以這麼多 template ?
   可以。因為這些 template 各自負責不同層級的判斷，而且它們不會真的產生 HTML 標籤。*/}
   第一層：登入狀態檢查完成了嗎？ 
   第二層：使用者有登入嗎？ -->
 
-      <!--  authInitialized 是 false
+        <!--  authInitialized 是 false
         └─ 什麼都不顯示
 
 authInitialized 是 true
@@ -127,32 +156,32 @@ authInitialized 是 true
 │
 └─ isLoggedIn 是 false
     └─ 顯示「註冊、登入」 -->
-      <nav>
-        <RouterLink to="/">打卡功能</RouterLink>
+        <nav>
+          <RouterLink to="/">打卡功能</RouterLink>
 
-        <template v-if="authInitialized">
-          <!--  isLogged = true  -->
-          <template v-if="isLoggedIn">
-            <!--  span 不會預設換行  -->
-            <span> 歡迎, {{ currentUser.nickname }} </span>
+          <template v-if="authInitialized">
+            <!--  isLogged = true  -->
+            <template v-if="isLoggedIn">
+              <!--  span 不會預設換行  -->
+              <span> 歡迎, {{ currentUser.nickname }} </span>
 
-            <RouterLink to="/member"> 使用者中心 </RouterLink>
+              <RouterLink to="/member"> 使用者中心 </RouterLink>
 
-            <RouterLink v-if="currentUser.role === 'Admin'" to="/admin/users">
-              帳號管理
-            </RouterLink>
+              <RouterLink v-if="currentUser.role === 'Admin'" to="/admin/users">
+                帳號管理
+              </RouterLink>
 
-            <RouterLink v-if="currentUser.role === 'Admin'" to="/admin/clock">
-              管理員打卡
-            </RouterLink>
+              <RouterLink v-if="currentUser.role === 'Admin'" to="/admin/clock">
+                管理員打卡
+              </RouterLink>
 
-            <RouterLink v-if="currentUser.role === 'Admin'" to="/admin/leave">
-              管理員請假
-            </RouterLink>
+              <RouterLink v-if="currentUser.role === 'Admin'" to="/admin/leave">
+                管理員請假
+              </RouterLink>
 
-            <button type="button" @click="logout">登出</button>
+              <button type="button" @click="logout">登出</button>
 
-            <!--  type="button"？
+              <!--  type="button"？
             type="button">一般按鈕
             type="submit">送出表單
             type="reset">清除表單
@@ -161,24 +190,25 @@ authInitialized 是 true
             意思是：這只是一顆普通按鈕，點擊後執行指定的 JavaScript
               -->
 
-            <!--  
+              <!--  
               畫面：
             歡迎，小明  [登出]
               -->
+            </template>
+
+            <!--  isLoggedIn = false -->
+            <template v-else>
+              <RouterLink to="/register"> 註冊 </RouterLink>
+
+              <RouterLink to="/login"> 登入 </RouterLink>
+            </template>
           </template>
+        </nav>
+      </div>
+    </header>
 
-          <!--  isLoggedIn = false -->
-          <template v-else>
-            <RouterLink to="/register"> 註冊 </RouterLink>
-
-            <RouterLink to="/login"> 登入 </RouterLink>
-          </template>
-        </template>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+    <RouterView />
+  </template>
 </template>
 
 <style scoped>
