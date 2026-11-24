@@ -251,7 +251,7 @@ async function registerMember() {
     })
     // vue Router
     // axios的HttpStatusCode裡的狀態
-    if (response.status === HttpStatusCode.Ok) {
+    if (response.status === HttpStatusCode.Created) {
       alert('註冊成功')
       router.push('/login')
     }

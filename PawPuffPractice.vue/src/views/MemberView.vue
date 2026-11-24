@@ -186,7 +186,11 @@ async function submitPassword() {
         <img :src="dashboardProfile" alt="" />
       </div>
       <nav class="dashboard-nav" aria-label="主要導覽">
-        <RouterLink class="dashboard-nav-link" to="/admin/clock">
+        <RouterLink
+          v-if="currentUser?.role === 'Admin'"
+          class="dashboard-nav-link"
+          to="/admin/clock"
+        >
           <img :src="navClockIcon" alt="" aria-hidden="true" />打卡功能
         </RouterLink>
         <RouterLink class="dashboard-nav-link is-section-active" aria-current="page" to="/member">
