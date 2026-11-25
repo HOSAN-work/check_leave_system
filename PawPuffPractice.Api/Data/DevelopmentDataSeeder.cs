@@ -277,9 +277,9 @@ public static class DevelopmentDataSeeder
                     continue;
                 }
 
-                // 上班時間：08:30～09:30
+                // 上班時間：09:00～10:00
                 DateTime clockInTime = workDate
-                    .ToDateTime(new TimeOnly(8, 30))
+                    .ToDateTime(new TimeOnly(9, 00))
                     .AddMinutes(clockFaker.Random.Int(0, 60));
                 // 建立 08:30
                 // new TimeOnly(8, 30)
@@ -295,10 +295,10 @@ public static class DevelopmentDataSeeder
                 // .AddMinutes(...) 加到 08:30 上。
                 // 例如隨機結果是：8  → 08:38
 
-                // 下班時間：17:30～19:00
+                // 下班時間：18:00～19:00
                 DateTime clockOutTime = workDate
-                    .ToDateTime(new TimeOnly(17, 30))
-                    .AddMinutes(clockFaker.Random.Int(0, 90));
+                    .ToDateTime(new TimeOnly(18, 00))
+                    .AddMinutes(clockFaker.Random.Int(0, 60));
 
                 // 建立一筆假的打卡紀錄，加入 fakeClockRecords 清單。
                 fakeClockRecords.Add(

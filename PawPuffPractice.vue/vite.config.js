@@ -29,6 +29,8 @@ export default defineConfig({
       target: 'http://localhost:5140',
       // 轉發時把請求的 Host 改成目的地的（localhost:5140），避免後端看到 ngrok 網址而拒絕。
       changeOrigin: true,
+      // SignalR 優先使用 WebSocket；一併代理 WebSocket，避免握手逾時後才改用 SSE。
+      ws: true,
       // 轉發前把路徑開頭的 /api 拿掉。舉例：
       // 前端呼叫：/api/Login/Auth
       // 轉給後端時變成：/Login/Auth

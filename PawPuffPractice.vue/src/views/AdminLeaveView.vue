@@ -334,6 +334,10 @@ leaveConnection.onclose(() => {
 })
 
 onMounted(async () => {
+  // 先載入既有假單，不能讓 SignalR 連線速度影響畫面初次顯示。
+  // SignalR 負責「之後有異動時通知更新」，不是取得第一批資料的必要條件。
+  await refreshLeaveData()
+
   try {
     // 開始連接 SignalR 後端，並等待連線結果。
     await leaveConnection.start()
@@ -341,9 +345,6 @@ onMounted(async () => {
     realtimeError.value = '即時連線失敗,仍可使用更新按鈕'
     console.error('請假即時連線失敗', error)
   }
-
-  // 即使連線失敗，仍載入原本的假單資料
-  await refreshLeaveData()
 
   // 測試
   // 「請假頁能不能拿到日曆？」

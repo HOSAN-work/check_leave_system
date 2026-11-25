@@ -16,3 +16,5 @@ node_modules/
 
 
 playwrightMCP＿測試/
+
+.playwright-mcp/

@@ -43,10 +43,10 @@ public class AdminClockDto
     // 尚未下班時是 null
     public DateTime? ClockOutTime { get; set; }
 
-    // 超過 10:15:00 才算遲到
+    // 超過 10:00:00 才算遲到
     // TimeOfDay：取得DateTime裡的時間部分,不包含日期
     //  => :判斷它是否符合條件
-    public bool IsLate => ClockInTime.TimeOfDay > new TimeSpan(10, 15, 0);
+    public bool IsLate => ClockInTime.TimeOfDay > new TimeSpan(10, 0, 0);
 
     // 不遲到：上班時間加 9 小時，包含 1 小時午休
     // 遲到：當天固定 19:00 下班

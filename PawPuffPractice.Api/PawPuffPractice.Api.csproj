@@ -24,7 +24,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.20" />
     <!-- 以下需要配合EfCore版本9  -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="11.0.1" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
     <PackageReference Include="NuGet.Packaging" Version="6.12.5" />
     <PackageReference Include="NuGet.Protocol" Version="6.12.5" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
